@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plinko - The Parthenon Casino</title>
+    <script>
+        // Check if the page was refreshed
+        if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+            window.location.replace('home.html');
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="game-pages.css">
+</head>
+<body>
+    <div class="coin-tab">
+        <span class="coin-icon">🪙</span>
+        <span class="coin-balance">1000</span>
+    </div>
+
+    <div class="game-page-container">
+        <header class="game-header">
+            <a href="home.html" class="back-button">← Back to Games</a>
+            <h1>Plinko</h1>
+            <div class="balance-container">
+                <span class="balance-label">Balance:</span>
+                <span class="balance-amount">1000</span>
+                <span class="currency">🪙</span>
+            </div>
+        </header>
+
+        <main class="game-content">
+            <div class="plinko-layout">
+                <aside class="plinko-sidebar">
+                    <div class="sidebar-section">
+                        <div class="sidebar-tabs">
+                            <button class="sidebar-tab active">Manual</button>
+                            <button class="sidebar-tab">Auto</button>
+                        </div>
+                        <div class="sidebar-field">
+                            <label for="sidebar-bet-amount">Bet Amount</label>
+                            <div class="sidebar-bet-input-group">
+                                <input id="sidebar-bet-amount" type="number" min="1" step="1" value="10">
+                                <span class="sidebar-coin">🪙</span>
+                                <button type="button" class="sidebar-bet-mult">2×</button>
+                                <button type="button" class="sidebar-bet-max">Max</button>
+                            </div>
+                        </div>
+                        <div class="sidebar-field">
+                            <label for="sidebar-risk">Risk</label>
+                            <select id="sidebar-risk">
+                                <option>Low</option>
+                                <option>Medium</option>
+                                <option>High</option>
+                            </select>
+                        </div>
+                        <div class="sidebar-field">
+                            <label for="sidebar-rows">Rows</label>
+                            <select id="sidebar-rows">
+                                <option>8</option>
+                                <option selected>15</option>
+                                <option>16</option>
+                            </select>
+                        </div>
+                        <button class="sidebar-bet-btn">Bet</button>
+                    </div>
+                </aside>
+                <div class="plinko-main">
+                    <div class="game-container">
+                        <div class="plinko-table">
+                            <h2>Plinko</h2>
+                            <div class="plinko-container">
+                                <canvas id="plinko-canvas" width="600" height="650"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="plinko-notification-stack"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="notification" style="display:none;"></div>
+    <script src="script.js"></script>
+</body>
+</html> 

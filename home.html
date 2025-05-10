@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Parthenon Casino</title>
+    <script>
+        // Check if the page was refreshed
+        if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+            window.location.replace('home.html');
+        }
+        // Load balance from localStorage
+        window.addEventListener('DOMContentLoaded', () => {
+            const balance = parseInt(localStorage.getItem('casinoBalance')) || 1000;
+            document.querySelector('.balance-amount').textContent = Math.floor(balance);
+            document.querySelector('.coin-balance').textContent = Math.floor(balance);
+        });
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="homepage.css">
+</head>
+<body>
+    <div class="coin-tab">
+        <span class="coin-icon">🪙</span>
+        <span class="coin-balance">1000</span>
+    </div>
+
+    <div class="homepage-container">
+        <header class="homepage-header">
+            <h1>The Parthenon Casino</h1>
+            <div class="balance-container">
+                <span class="balance-label">Balance:</span>
+                <span class="balance-amount">1000</span>
+                <span class="currency">🪙</span>
+            </div>
+        </header>
+
+        <div class="games-grid">
+            <a href="blackjack.html" class="game-card blackjack-card">
+                <div class="card-content">
+                    <div class="game-icon">🎴</div>
+                    <h2>Blackjack</h2>
+                    <p>Test your luck against the dealer in this classic game of 21</p>
+                </div>
+                <div class="card-decoration left-column"></div>
+                <div class="card-decoration right-column"></div>
+            </a>
+
+            <a href="plinko.html" class="game-card plinko-card">
+                <div class="card-content">
+                    <div class="game-icon">🎯</div>
+                    <h2>Plinko</h2>
+                    <p>Drop the ball and watch it bounce through ancient Greek columns</p>
+                </div>
+                <div class="card-decoration left-column"></div>
+                <div class="card-decoration right-column"></div>
+            </a>
+        </div>
+
+        <div class="decorative-elements">
+            <div class="greek-column left"></div>
+            <div class="greek-column right"></div>
+            <div class="olive-branch top-left"></div>
+            <div class="olive-branch top-right"></div>
+            <div class="olive-branch bottom-left"></div>
+            <div class="olive-branch bottom-right"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

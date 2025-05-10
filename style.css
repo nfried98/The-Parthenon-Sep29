@@ -1,0 +1,346 @@
+:root {
+    --primary-color: #C5A572;
+    --secondary-color: #2C3E50;
+    --accent-color: #E74C3C;
+    --background-color: #1A1A1A;
+    --text-color: #FFFFFF;
+    --table-color: #2C3E50;
+    --card-color: #FFFFFF;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Playfair Display', serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    background-image: url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.casino-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 2px solid var(--primary-color);
+    margin-bottom: 2rem;
+}
+
+h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 3rem;
+    color: var(--primary-color);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.balance-container {
+    background: rgba(44, 62, 80, 0.9);
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    border: 2px solid var(--primary-color);
+}
+
+.balance-label {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.balance-amount {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.currency {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    margin-left: 0.2rem;
+}
+
+.game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh;
+}
+
+.blackjack-table {
+    background: rgba(44, 62, 80, 0.95);
+    border: 4px solid var(--primary-color);
+    border-radius: 20px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 800px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.blackjack-table h2 {
+    text-align: center;
+    color: var(--primary-color);
+    font-family: 'Cinzel', serif;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+}
+
+.dealer-area, .player-area {
+    background: rgba(26, 26, 26, 0.7);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+.dealer-area h3, .player-area h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-family: 'Cinzel', serif;
+}
+
+.dealer-cards, .player-cards {
+    min-height: 120px;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.game-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+button {
+    background: var(--primary-color);
+    color: var(--secondary-color);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 5px;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background: #D4B483;
+    transform: translateY(-2px);
+}
+
+button:disabled {
+    background: #666;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.bet-amount {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(26, 26, 26, 0.7);
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+}
+
+.bet-minus, .bet-plus {
+    padding: 0.3rem 0.8rem;
+}
+
+.current-bet {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    min-width: 50px;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .casino-container {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .game-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    button {
+        width: 100%;
+        max-width: 200px;
+    }
+}
+
+.notification {
+    display: none;
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(197, 165, 114, 0.97);
+    color: #2C3E50;
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 1rem 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(44, 62, 80, 0.25);
+    border: 3px solid #fff8e1;
+    z-index: 1000;
+    letter-spacing: 1px;
+    text-align: center;
+    animation: fadeInOut 2.5s linear;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.plinko-table {
+    background: rgba(44, 62, 80, 0.95);
+    border: 4px solid var(--primary-color);
+    border-radius: 20px;
+    padding: 1rem;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.plinko-table h2 {
+    color: var(--primary-color);
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.plinko-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex: 1;
+    min-height: 0;
+}
+
+#plinko-canvas {
+    background: #fff8e1;
+    border: 3px solid var(--primary-color);
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(44, 62, 80, 0.15);
+    max-width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.plinko-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.7rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+}
+
+.plinko-bet-label {
+    color: var(--primary-color);
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    margin: 0 0.3rem;
+}
+
+.plinko-current-bet {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    min-width: 40px;
+    text-align: center;
+}
+
+.plinko-drop-btn, .plinko-bet-minus, .plinko-bet-plus {
+    background: var(--primary-color);
+    color: var(--secondary-color);
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 5px;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.plinko-drop-btn:hover, .plinko-bet-minus:hover, .plinko-bet-plus:hover {
+    background: #D4B483;
+    transform: translateY(-2px);
+}
+
+.plinko-drop-btn:disabled {
+    background: #666;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.coin-tab {
+    display: none;
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, #2C3E50 80%, #3a4a5a 100%);
+    border: 3px solid #C5A572;
+    border-radius: 32px;
+    box-shadow: 0 4px 24px rgba(44, 62, 80, 0.13);
+    padding: 0.6rem 2.8rem 0.6rem 2.2rem;
+    align-items: center;
+    gap: 1.2rem;
+    z-index: 2000;
+    min-width: 220px;
+    max-width: 90vw;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    font-size: 1.6rem;
+    color: #fff8e1;
+    letter-spacing: 1px;
+    box-sizing: border-box;
+}
+
+.coin-icon {
+    font-size: 2.1rem;
+    color: #C5A572;
+    margin-right: 0.7rem;
+    font-family: 'Cinzel', serif;
+    filter: drop-shadow(0 2px 2px #2C3E5033);
+}
+
+.coin-balance {
+    font-size: 1.6rem;
+    color: #fff8e1;
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 8px #2C3E5044;
+} 
