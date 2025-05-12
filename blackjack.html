@@ -17,16 +17,18 @@
 <body>
     <div class="coin-tab">
         <span class="coin-icon">🪙</span>
-        <span class="coin-balance">1000</span>
+        <span class="coin-balance">0</span>
     </div>
 
-    <div class="game-page-container">
+    <div class="game-page-container" style="position:relative;">
+        <img src="images/fullcolumn.svg" alt="Full Column Left" class="side-img side-img-left">
+        <img src="images/fullcolumn.svg" alt="Full Column Right" class="side-img side-img-right">
         <header class="game-header">
             <a href="home.html" class="back-button">← Back to Games</a>
             <h1>Blackjack</h1>
             <div class="balance-container">
                 <span class="balance-label">Balance:</span>
-                <span class="balance-amount">1000</span>
+                <span class="balance-amount">0</span>
                 <span class="currency">🪙</span>
             </div>
         </header>
@@ -39,21 +41,25 @@
                         <h3>Dealer</h3>
                         <div class="dealer-row">
                             <div class="cards-area"><div class="dealer-cards"></div></div>
+                            <div class="deck"></div>
                         </div>
-                        <div class="deck"></div>
                     </div>
                     <div class="player-area">
                         <h3>Player</h3>
                         <div class="cards-area"><div class="player-cards"></div></div>
                     </div>
                     <div class="game-controls">
+                        <div class="card-action-row">
+                            <button class="hit-btn" disabled>Hit</button>
+                            <button class="stand-btn" disabled>Stand</button>
+                            <button class="split-btn" disabled>Split</button>
+                        </div>
                         <button class="bet-btn">Place Bet</button>
-                        <button class="hit-btn" disabled>Hit</button>
-                        <button class="stand-btn" disabled>Stand</button>
                         <div class="bet-amount">
                             <button class="bet-minus">-</button>
-                            <span class="current-bet">10</span>
+                            <input type="number" class="current-bet" value="10" step="10" min="1">
                             <button class="bet-plus">+</button>
+                            <button class="bet-max">Max</button>
                         </div>
                     </div>
                 </div>

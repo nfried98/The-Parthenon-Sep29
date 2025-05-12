@@ -20,6 +20,265 @@
     overflow: hidden;
 }
 
+/* Add Greek pillars */
+.game-page-container::before,
+.game-page-container::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    width: 120px;
+    height: 100vh;
+    background: 
+        linear-gradient(90deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.05) 100%),
+        url('data:image/svg+xml;utf8,<svg width="120" height="600" viewBox="0 0 120 600" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M60,0 L120,50 L120,550 L60,600 L0,550 L0,50 Z" fill="none" stroke="%23FFD700" stroke-width="2"/><path d="M30,100 L90,100 M30,200 L90,200 M30,300 L90,300 M30,400 L90,400 M30,500 L90,500" stroke="%23FFD700" stroke-width="1" opacity="0.3"/></svg>') repeat-y;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.game-page-container::before {
+    left: 0;
+}
+
+.game-page-container::after {
+    right: 0;
+    transform: scaleX(-1);
+}
+
+/* Add Greek pattern border */
+.game-container {
+    position: relative;
+    border: none !important;
+}
+
+.game-container::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    background: 
+        linear-gradient(45deg, #FFD700 25%, transparent 25%),
+        linear-gradient(-45deg, #FFD700 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #FFD700 75%),
+        linear-gradient(-45deg, transparent 75%, #FFD700 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    border-radius: 18px;
+    z-index: -1;
+    opacity: 0.1;
+}
+
+.game-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 15px;
+    z-index: -1;
+}
+
+/* Enhance game header */
+.game-header {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%) !important;
+    border: 2px solid #FFD700;
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.game-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #FFD700, transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Enhance cards area */
+.dealer-area, .player-area {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid #FFD700;
+    border-radius: 15px;
+    padding: 1rem;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    margin-bottom: 0;
+}
+
+.dealer-area::before, .player-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M0,0 L100,100 M100,0 L0,100" stroke="%23FFD700" stroke-width="0.5" opacity="0.1"/></svg>');
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+/* Enhance deck */
+.deck {
+    background: repeating-linear-gradient(135deg, #fff8e1 0 12px, #C5A572 12px 24px);
+    border: 3px solid #C5A572;
+    box-shadow: 
+        0 4px 8px rgba(0,0,0,0.2),
+        0 0 0 2px #C5A572,
+        0 0 20px rgba(255, 215, 0, 0.2);
+    position: relative;
+}
+
+.deck::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(135deg, #fff8e1 0%, #f5e6c3 100%);
+    border-radius: 10px;
+    z-index: -1;
+    transform: translateZ(-1px);
+}
+
+.deck::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    background: linear-gradient(135deg, #fff8e1 0%, #f5e6c3 100%);
+    border-radius: 12px;
+    z-index: -2;
+    transform: translateZ(-2px);
+}
+
+/* Add Greek pattern to game controls */
+.game-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.15rem;
+    margin-top: auto;
+    padding: 0.3rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    border: 2px solid #FFD700;
+}
+
+.card-action-row {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 0.15rem;
+}
+
+.bet-btn {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+/* Enhance bet amount display */
+.bet-amount {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    border: 2px solid #FFD700;
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.bet-amount button {
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%);
+    color: #232a36;
+    border: 2px solid #FFD700;
+    border-radius: 4px;
+    padding: 0.4rem 1rem;
+    font-size: 1.2rem;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    min-width: 40px;
+}
+
+.bet-amount button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #FFE44D 0%, #FFD700 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.bet-amount button:disabled {
+    background: #444 !important;
+    color: #aaa !important;
+    border-color: #444 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+
+.current-bet {
+    color: #FFD700;
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    min-width: 80px;
+    text-align: center;
+    background: transparent;
+    border: 1px solid #FFD700;
+    border-radius: 4px;
+    padding: 0.4rem;
+    outline: none;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.current-bet::-webkit-outer-spin-button,
+.current-bet::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.current-bet[type=number] {
+    -moz-appearance: textfield;
+}
+
+.bet-max {
+    min-width: 60px !important;
+    font-size: 1rem !important;
+    padding: 0.4rem 0.8rem !important;
+}
+
+/* Add highlight animation for bet input */
+@keyframes highlight-bet {
+    0% { background: rgba(255, 215, 0, 0.2); }
+    100% { background: transparent; }
+}
+
+.current-bet.highlight {
+    animation: highlight-bet 0.5s ease-out;
+}
+
+/* Add Greek pattern to feedback overlay */
+.feedback-overlay {
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    color: #FFD700;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .game-page-container::before,
+    .game-page-container::after {
+        width: 60px;
+    }
+}
+
 .game-header {
     display: flex;
     justify-content: space-between;
@@ -34,19 +293,22 @@
 }
 
 .back-button {
+    background: linear-gradient(135deg, #1a222b 0%, #232a36 100%);
     color: #FFD700;
     text-decoration: none;
     font-family: 'Cinzel', serif;
     font-size: 1.2rem;
     padding: 0.5rem 1rem;
-    border: 1px solid #FFD700;
-    border-radius: 5px;
-    transition: all 0.3s ease;
+    border: 2px solid #FFD700;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .back-button:hover {
-    background: #FFD700;
-    color: #000;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .game-header h1 {
@@ -104,6 +366,7 @@
     padding: 1rem;
     position: relative;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    margin-bottom: 0;
 }
 
 .dealer-area h3, .player-area h3 {
@@ -125,6 +388,7 @@
     width: 100%;
     gap: 1.2rem;
     margin: 0 auto;
+    position: relative;
 }
 
 .dealer-cards {
@@ -153,70 +417,105 @@
     border-radius: 10px;
 }
 
-.game-controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin-top: auto;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 15px;
-    border: 2px solid #FFD700;
-}
-
 .game-controls button {
     background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%);
-    color: #000;
-    border: none;
-    padding: 0.8rem 1.8rem;
-    font-family: 'Cinzel', serif;
-    font-size: 1.1rem;
+    color: #232a36;
+    border: 2px solid #FFD700;
     border-radius: 8px;
+    font-size: 1.2rem;
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    padding: 0.5rem 1.2rem;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    min-width: 120px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 90px;
 }
 
 .game-controls button:hover:not(:disabled) {
     background: linear-gradient(135deg, #FFE44D 0%, #FFD700 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.25);
 }
 
 .game-controls button:disabled {
-    background: #444;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
+    background: #444 !important;
+    color: #aaa !important;
+    border-color: #444 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
 }
 
 .bet-amount {
     display: flex;
     align-items: center;
     gap: 0.8rem;
-    background: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
     padding: 0.8rem 1.2rem;
     border-radius: 8px;
     border: 2px solid #FFD700;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.1);
+    position: relative;
+    overflow: hidden;
 }
 
 .bet-amount button {
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%);
+    color: #232a36;
+    border: 2px solid #FFD700;
+    border-radius: 4px;
     padding: 0.4rem 1rem;
     font-size: 1.2rem;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     min-width: 40px;
-    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%);
+}
+
+.bet-amount button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #FFE44D 0%, #FFD700 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.bet-amount button:disabled {
+    background: #444 !important;
+    color: #aaa !important;
+    border-color: #444 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
 }
 
 .current-bet {
     color: #FFD700;
     font-family: 'Cinzel', serif;
-    font-size: 1.4rem;
-    min-width: 4rem;
+    font-size: 1.2rem;
+    min-width: 80px;
     text-align: center;
+    background: transparent;
+    border: 1px solid #FFD700;
+    border-radius: 4px;
+    padding: 0.4rem;
+    outline: none;
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.current-bet::-webkit-outer-spin-button,
+.current-bet::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.current-bet[type=number] {
+    -moz-appearance: textfield;
+}
+
+.bet-max {
+    min-width: 60px !important;
+    font-size: 1rem !important;
+    padding: 0.4rem 0.8rem !important;
 }
 
 /* Plinko specific styles */
@@ -273,42 +572,43 @@
 }
 
 .plinko-drop-btn {
-    background: #FFD700;
-    color: #000;
-    border: none;
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%);
+    color: #232a36;
+    border: 2px solid #FFD700;
+    border-radius: 8px;
     padding: 1rem 2rem;
     font-family: 'Cinzel', serif;
     font-size: 1.2rem;
-    border-radius: 5px;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .plinko-drop-btn:hover {
-    background: #fff;
-    transform: translateY(-2px);
-}
-
-.plinko-bet-label {
-    color: #FFD700;
-    font-family: 'Cinzel', serif;
-    font-size: 1.2rem;
+    background: linear-gradient(135deg, #FFE44D 0%, #FFD700 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.25);
 }
 
 .plinko-bet-minus, .plinko-bet-plus {
-    background: #FFD700;
-    color: #000;
-    border: none;
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%);
+    color: #232a36;
+    border: 2px solid #FFD700;
+    border-radius: 4px;
     padding: 0.5rem 1rem;
     font-family: 'Cinzel', serif;
     font-size: 1rem;
-    border-radius: 5px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .plinko-bet-minus:hover, .plinko-bet-plus:hover {
-    background: #fff;
+    background: linear-gradient(135deg, #FFE44D 0%, #FFD700 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
 }
 
 .plinko-current-bet {
@@ -376,7 +676,7 @@
 }
 .sidebar-tab {
     flex: 1;
-    background: #1a222b;
+    background: linear-gradient(135deg, #1a222b 0%, #232a36 100%);
     color: #fff;
     border: none;
     padding: 0.7rem 0;
@@ -384,11 +684,13 @@
     font-size: 1.1rem;
     font-family: 'Cinzel', serif;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 .sidebar-tab.active, .sidebar-tab:hover {
-    background: #2c3e50;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: #FFD700;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .sidebar-field {
@@ -404,10 +706,13 @@
 .sidebar-bet-input-group {
     display: flex;
     align-items: center;
-    background: #1a222b;
+    background: linear-gradient(135deg, #1a222b 0%, #232a36 100%);
+    border: 2px solid #2c3e50;
     border-radius: 6px;
     padding: 0.3rem 0.7rem;
     gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 #sidebar-bet-amount {
     background: transparent;
@@ -416,15 +721,19 @@
     font-size: 1.1rem;
     width: 100%;
     outline: none;
+    font-family: 'Cinzel', serif;
+}
+#sidebar-bet-amount:focus {
+    outline: none;
 }
 .sidebar-coin {
     font-size: 1.2rem;
     margin-left: 0.2rem;
 }
 .sidebar-bet-mult, .sidebar-bet-max {
-    background: #FFD700;
-    color: #232a36;
-    border: 2px solid #FFD700;
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%) !important;
+    color: #232a36 !important;
+    border: 2px solid #FFD700 !important;
     border-radius: 4px;
     padding: 0.1rem 0.9rem;
     font-size: 1rem;
@@ -432,38 +741,70 @@
     font-weight: 600;
     margin: 0 0.3rem;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    transition: all 0.2s ease;
     outline: none;
     min-width: 2.5em;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    position: relative;
+    overflow: hidden;
 }
-.sidebar-bet-mult.bet-disabled, .sidebar-bet-max.bet-disabled {
+.sidebar-bet-mult:hover:not(.bet-disabled), 
+.sidebar-bet-max:hover:not(.bet-disabled) {
+    background: linear-gradient(135deg, #FFE44D 0%, #FFD700 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+.sidebar-bet-mult:active:not(.bet-disabled), 
+.sidebar-bet-max:active:not(.bet-disabled) {
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%) !important;
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.sidebar-bet-mult.bet-disabled, 
+.sidebar-bet-max.bet-disabled {
     border-color: #444 !important;
     background: #444 !important;
     color: #aaa !important;
     cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 #sidebar-risk, #sidebar-rows {
-    background: #1a222b;
+    background: linear-gradient(135deg, #1a222b 0%, #232a36 100%);
     color: #fff;
-    border: none;
+    border: 2px solid #2c3e50;
     border-radius: 6px;
     padding: 0.4rem 0.7rem;
     font-size: 1rem;
     font-family: 'Playfair Display', serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+#sidebar-risk:hover, 
+#sidebar-rows:hover {
+    border-color: #FFD700;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+#sidebar-risk:focus, 
+#sidebar-rows:focus {
+    outline: none;
+    border-color: #FFD700;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 .sidebar-bet-btn {
-    background: #FFD700;
-    color: #232a36;
-    border: 2px solid #FFD700;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%) !important;
+    color: #232a36 !important;
+    border: 2px solid #FFD700 !important;
+    border-radius: 8px;
     font-size: 1.2rem;
     font-family: 'Cinzel', serif;
     font-weight: bold;
     padding: 1rem 0;
     margin-top: 2rem;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     letter-spacing: 0.5px;
     width: 100%;
     min-width: 120px;
@@ -471,12 +812,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-}
-.sidebar-bet-btn:hover:not(:disabled) {
-    background: #fff;
-    color: #FFD700;
-    border-color: #FFD700;
-    box-shadow: 0 4px 16px #FFD70040;
 }
 .sidebar-bet-btn:disabled,
 .sidebar-bet-btn.bet-disabled {
@@ -677,8 +1012,6 @@ body, .game-page-container {
     font-size: 1.2rem;
     width: 100%;
     outline: none;
-    font-family: 'Cinzel', serif;
-    appearance: textfield;
 }
 /* Remove number input spinners */
 #sidebar-bet-amount::-webkit-outer-spin-button,
@@ -735,10 +1068,11 @@ body, .game-page-container {
     justify-content: center;
 }
 .sidebar-bet-btn:hover:not(:disabled) {
-    background: #fff;
-    color: #FFD700;
-    border-color: #FFD700;
-    box-shadow: 0 4px 16px #FFD70040;
+    background: linear-gradient(135deg, #FFE44D 0%, #FFD700 100%) !important;
+    color: #232a36 !important;
+    border-color: #FFD700 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.25);
 }
 .sidebar-bet-btn:disabled,
 .sidebar-bet-btn.bet-disabled {
@@ -840,30 +1174,49 @@ body, .game-page-container {
 .deck {
     position: absolute;
     right: 2.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 60px;
-    height: 90px;
+    top: auto;
+    bottom: 1rem;
+    transform: none;
+    width: 65px;
+    height: 95px;
     border-radius: 8px;
     background: repeating-linear-gradient(135deg, #fff8e1 0 12px, #C5A572 12px 24px);
     border: 3px solid #C5A572;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2), 0 0 0 2px #C5A572;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 3;
+    transform: perspective(1000px) rotateX(5deg);
 }
-.deck::before, .deck::after {
-    display: none;
+
+.deck::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #fff8e1 0%, #f5e6c3 100%);
+    z-index: -1;
+    transform: translateZ(-1px);
+}
+
+.deck::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fff8e1 0%, #f5e6c3 100%);
+    z-index: -2;
+    transform: translateZ(-2px);
 }
 
 .dealing-card {
     position: fixed;
     z-index: 1000;
-    width: 60px;
-    height: 90px;
+    width: 65px;
+    height: 95px;
     border-radius: 8px;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2), 0 0 0 2px #C5A572;
     pointer-events: none;
     transition: transform 0.5s cubic-bezier(.4,2,.6,1), opacity 0.5s;
     will-change: transform, opacity;
@@ -881,4 +1234,73 @@ body, .game-page-container {
     text-align: center;
     pointer-events: none;
     z-index: 10;
+}
+
+.highlight-bet {
+    animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Parthenon Pillars */
+.pillar-svg {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 80%;
+    max-height: 600px;
+    width: 44px;
+    min-width: 32px;
+    z-index: 2;
+    pointer-events: none;
+}
+.pillar-left {
+    left: 0;
+    margin-left: 18px;
+}
+.pillar-right {
+    right: 0;
+    margin-right: 18px;
+}
+
+@media (max-width: 900px) {
+    .pillar-svg {
+        display: none;
+    }
+}
+
+.side-img {
+    position: absolute;
+    z-index: 1000 !important;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.9 !important;
+    height: 100vh !important;
+    width: 1400px !important;
+    max-width: 100vw;
+    max-height: none !important;
+    filter: brightness(0.7);
+}
+.side-img-left {
+    left: -300px;
+    top: 12px;
+    margin-left: 0;
+    bottom: 0;
+    transform: scale(1.165);
+}
+.side-img-right {
+    right: -570px;
+    top: 12px;
+    margin-right: 0;
+    bottom: 0;
+    transform: scale(1.165);
+}
+@media (max-width: 900px) {
+    .side-img {
+        display: none;
+    }
 } 

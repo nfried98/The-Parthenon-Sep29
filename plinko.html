@@ -17,16 +17,16 @@
 <body>
     <div class="coin-tab">
         <span class="coin-icon">🪙</span>
-        <span class="coin-balance">1000</span>
+        <span class="coin-balance">0</span>
     </div>
 
-    <div class="game-page-container">
+    <div class="game-page-container" style="position:relative;">
         <header class="game-header">
             <a href="home.html" class="back-button">← Back to Games</a>
             <h1>Plinko</h1>
             <div class="balance-container">
                 <span class="balance-label">Balance:</span>
-                <span class="balance-amount">1000</span>
+                <span class="balance-amount">0</span>
                 <span class="currency">🪙</span>
             </div>
         </header>
@@ -36,8 +36,8 @@
                 <aside class="plinko-sidebar">
                     <div class="sidebar-section">
                         <div class="sidebar-tabs">
-                            <button class="sidebar-tab active">Manual</button>
-                            <button class="sidebar-tab">Auto</button>
+                            <button class="sidebar-tab active" data-mode="manual">Manual</button>
+                            <button class="sidebar-tab" data-mode="auto">Auto</button>
                         </div>
                         <div class="sidebar-field">
                             <label for="sidebar-bet-amount">Bet Amount</label>

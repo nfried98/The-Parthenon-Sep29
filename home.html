@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Parthenon Casino</title>
+    <title>The Parthenon</title>
     <script>
         // Check if the page was refreshed
         if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+            localStorage.setItem('casinoBalance', '5000');
             window.location.replace('home.html');
         }
         // Load balance from localStorage
         window.addEventListener('DOMContentLoaded', () => {
-            const balance = parseInt(localStorage.getItem('casinoBalance')) || 1000;
+            const balance = parseInt(localStorage.getItem('casinoBalance')) || 0;
             document.querySelector('.balance-amount').textContent = Math.floor(balance);
             document.querySelector('.coin-balance').textContent = Math.floor(balance);
         });
@@ -28,7 +29,7 @@
 
     <div class="homepage-container">
         <header class="homepage-header">
-            <h1>The Parthenon Casino</h1>
+            <h1>The Parthenon</h1>
             <div class="balance-container">
                 <span class="balance-label">Balance:</span>
                 <span class="balance-amount">1000</span>
@@ -39,22 +40,18 @@
         <div class="games-grid">
             <a href="blackjack.html" class="game-card blackjack-card">
                 <div class="card-content">
-                    <div class="game-icon">🎴</div>
+                    <div class="game-icon"><img src="images/blackjack-lux.svg" alt="Blackjack Icon"></div>
                     <h2>Blackjack</h2>
                     <p>Test your luck against the dealer in this classic game of 21</p>
                 </div>
-                <div class="card-decoration left-column"></div>
-                <div class="card-decoration right-column"></div>
             </a>
 
             <a href="plinko.html" class="game-card plinko-card">
                 <div class="card-content">
-                    <div class="game-icon">🎯</div>
+                    <div class="game-icon"><img src="images/fullcolumn.svg" alt="Plinko Icon"></div>
                     <h2>Plinko</h2>
                     <p>Drop the ball and watch it bounce through ancient Greek columns</p>
                 </div>
-                <div class="card-decoration left-column"></div>
-                <div class="card-decoration right-column"></div>
             </a>
         </div>
 
