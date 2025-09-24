@@ -1,7 +1,18 @@
 // Add this at the top of the file, before any class definitions
 class CasinoBalance {
     static getBalance() {
-        return parseInt(localStorage.getItem('casinoBalance')) || 0;
+        const storedBalance = localStorage.getItem('casinoBalance');
+        const sessionStarted = sessionStorage.getItem('casinoSessionStarted');
+        
+        // If no session is started (fresh page load), initialize with 0
+        if (!sessionStarted) {
+            sessionStorage.setItem('casinoSessionStarted', 'true');
+            this.setBalance(0);
+            return 0;
+        }
+        
+        // If session exists, use stored balance or default to 0
+        return parseInt(storedBalance) || 0;
     }
 
     static setBalance(amount) {
@@ -117,7 +128,8 @@ class BlackjackGame {
             let value = parseInt(e.target.value);
             if (isNaN(value)) value = 0;
             if (value < 0) value = 0;
-            if (value > this.balance) value = this.balance;
+            const currentBalance = CasinoBalance.getBalance();
+            if (value > currentBalance) value = currentBalance;
             this.currentBet = value;
             e.target.value = value;
         });
@@ -129,8 +141,9 @@ class BlackjackGame {
                 value = 0;
                 e.target.value = value;
             }
-            if (value > this.balance) {
-                value = this.balance;
+            const currentBalance = CasinoBalance.getBalance();
+            if (value > currentBalance) {
+                value = currentBalance;
                 e.target.value = value;
             }
             this.currentBet = value;
@@ -139,7 +152,9 @@ class BlackjackGame {
 
     setMaxBet() {
         if (this.gameInProgress) return;
-        this.currentBet = this.balance;
+        // Get the current balance from CasinoBalance instead of using stale this.balance
+        const currentBalance = CasinoBalance.getBalance();
+        this.currentBet = currentBalance;
         this.betElement.value = this.currentBet;
         this.betElement.classList.add('highlight');
         setTimeout(() => this.betElement.classList.remove('highlight'), 500);
@@ -148,7 +163,8 @@ class BlackjackGame {
     adjustBet(amount) {
         if (this.gameInProgress) return;
         const newBet = this.currentBet + amount;
-        if (newBet >= 0 && newBet <= this.balance) {
+        const currentBalance = CasinoBalance.getBalance();
+        if (newBet >= 0 && newBet <= currentBalance) {
             this.currentBet = newBet;
             this.betElement.value = this.currentBet;
             this.betElement.classList.add('highlight');
@@ -366,6 +382,31 @@ class BlackjackGame {
         return value;
     }
 
+    async animateCardFlip(cardElement, newCard) {
+        // Create a flip animation by scaling the card
+        cardElement.style.transition = 'transform 0.3s ease-in-out';
+        cardElement.style.transform = 'scaleX(0)';
+        
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        // Replace the card content
+        const newElement = this.createCardElement(newCard);
+        cardElement.replaceWith(newElement);
+        
+        // Animate the new card back
+        newElement.style.transition = 'transform 0.3s ease-in-out';
+        newElement.style.transform = 'scaleX(0)';
+        
+        // Force reflow
+        newElement.offsetWidth;
+        
+        newElement.style.transform = 'scaleX(1)';
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+        newElement.style.transition = '';
+        newElement.style.transform = '';
+    }
+
     async animateDealCardToHand(targetContainer, cardIndex, handOverride) {
         // Find the deck element
         const deck = document.querySelector('.deck');
@@ -424,12 +465,84 @@ class BlackjackGame {
             realCard = this.createCardElement(
                 targetContainer === this.playerCardsElement
                     ? this.playerHand[this.playerHand.length - 1]
-                    : (targetContainer === this.dealerCardsElement && targetContainer.children.length === 2
-                        ? this.dealerHand[0]
-                        : { suit: '?', value: 0 })
+                    : (targetContainer === this.dealerCardsElement && cardIndex === 0
+                        ? { suit: '?', value: 0 }
+                        : this.dealerHand[this.dealerHand.length - 1])
             );
         }
         placeholder.replaceWith(realCard);
+    }
+
+    async animateCardReturnToDeck(cardElement) {
+        // Find the deck element
+        const deck = document.querySelector('.deck');
+        if (!deck) return;
+        
+        // Get card and deck positions BEFORE hiding the original card
+        const cardRect = cardElement.getBoundingClientRect();
+        const deckRect = deck.getBoundingClientRect();
+        
+        // Hide the original card immediately
+        cardElement.style.opacity = '0';
+        
+        // Create a clone of the card for animation
+        const animCard = cardElement.cloneNode(true);
+        animCard.style.position = 'fixed';
+        animCard.style.left = `${cardRect.left}px`;
+        animCard.style.top = `${cardRect.top}px`;
+        animCard.style.width = `${cardRect.width}px`;
+        animCard.style.height = `${cardRect.height}px`;
+        animCard.style.transition = 'left 0.4s cubic-bezier(.7,1,.7,1), top 0.4s cubic-bezier(.7,1,.7,1), transform 0.4s cubic-bezier(.7,1,.7,1)';
+        animCard.style.zIndex = '1'; // Low but positive z-index
+        animCard.style.pointerEvents = 'none';
+        animCard.style.opacity = '1'; // Keep fully visible
+        
+        // Append to the same container as the deck instead of body
+        const deckContainer = deck.parentElement;
+        deckContainer.appendChild(animCard);
+        
+        // Force reflow
+        animCard.offsetWidth;
+        
+        // Animate to deck position with rotation, but slightly above the deck
+        const deckCenterX = deckRect.left + deckRect.width / 2;
+        const deckCenterY = deckRect.top + deckRect.height / 2 - 10; // Move cards 10px above deck center
+        
+        animCard.style.left = `${deckCenterX - cardRect.width / 2}px`;
+        animCard.style.top = `${deckCenterY - cardRect.height / 2}px`;
+        animCard.style.transform = 'rotate(180deg) scale(0.8)';
+        // No opacity change - keep fully visible
+        
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        // Remove the animated card immediately (no fade)
+        animCard.remove();
+    }
+
+    async clearExistingCards() {
+        const playerCards = Array.from(this.playerCardsElement.children);
+        const dealerCards = Array.from(this.dealerCardsElement.children);
+        
+        // Animate all existing cards returning to deck
+        const animations = [];
+        
+        // Animate player cards
+        for (let card of playerCards) {
+            animations.push(this.animateCardReturnToDeck(card));
+        }
+        
+        // Animate dealer cards
+        for (let card of dealerCards) {
+            animations.push(this.animateCardReturnToDeck(card));
+        }
+        
+        // Wait for all animations to complete
+        await Promise.all(animations);
+        
+        // Clear the card areas
+        this.dealerCardsElement.innerHTML = '';
+        this.playerCardsElement.innerHTML = '';
     }
 
     async startNewHand() {
@@ -438,15 +551,18 @@ class BlackjackGame {
             this.showNotification('Minimum bet is 1');
             return;
         }
-        if (this.currentBet > this.balance) return;
-        this.balance -= this.currentBet;
+        const currentBalance = CasinoBalance.getBalance();
+        if (this.currentBet > currentBalance) return;
+        this.balance = currentBalance - this.currentBet;
         this.updateBalance();
         this.gameInProgress = true;
         this.deck.reset();
         this.playerHand = [];
         this.dealerHand = [];
-        this.dealerCardsElement.innerHTML = '';
-        this.playerCardsElement.innerHTML = '';
+        
+        // Clear existing cards with animation if any exist
+        await this.clearExistingCards();
+        
         // Reset player cards area layout to default
         this.playerCardsElement.style.display = '';
         this.playerCardsElement.style.flexDirection = '';
@@ -499,8 +615,12 @@ class BlackjackGame {
         await this.animateDealCardToHand(this.playerCardsElement, this.playerHand.length - 1);
         if (this.calculateHandValue(this.playerHand) > 21) {
             this.showBustMessage();
-            setTimeout(() => {
-                this.endHand('dealer');
+            // Disable buttons immediately when player busts
+            this.hitBtn.disabled = true;
+            this.standBtn.disabled = true;
+            this.splitBtn.disabled = true;
+            setTimeout(async () => {
+                await this.endHand('dealer');
             }, 1200);
         }
         this.updateSplitButtonState();
@@ -518,27 +638,48 @@ class BlackjackGame {
             this.updateSplitButtonState();
             return;
         }
-        this.dealerCardsElement.innerHTML = '';
-        for (let card of this.dealerHand) {
-            this.dealerCardsElement.appendChild(this.createCardElement(card));
-        }
+        
+        // Disable buttons immediately when player stands
+        this.hitBtn.disabled = true;
+        this.standBtn.disabled = true;
+        this.splitBtn.disabled = true;
+        
+        // Don't flip the card yet - keep it face down until dealer draws
 
         while (this.calculateHandValue(this.dealerHand) < 17) {
+            // Flip the face-down card before drawing the first additional card
+            if (this.dealerHand.length === 2) {
+                // Find the face-down card (should be the first dealer card)
+                const dealerCards = this.dealerCardsElement.children;
+                if (dealerCards.length >= 2) {
+                    const faceDownCard = dealerCards[0]; // First card is face-down
+                    if (faceDownCard) {
+                        await this.animateCardFlip(faceDownCard, this.dealerHand[0]);
+                    }
+                }
+            }
+            
             this.dealerHand.push(this.deck.draw());
-            this.dealerCardsElement.appendChild(this.createCardElement(this.dealerHand[this.dealerHand.length - 1]));
+            await this.animateDealCardToHand(this.dealerCardsElement, this.dealerHand.length - 1);
+            
+            // Flip the newly dealt card after it's in position
+            const newCard = this.dealerCardsElement.children[this.dealerHand.length - 1];
+            if (newCard) {
+                await this.animateCardFlip(newCard, this.dealerHand[this.dealerHand.length - 1]);
+            }
         }
 
         const playerValue = this.calculateHandValue(this.playerHand);
         const dealerValue = this.calculateHandValue(this.dealerHand);
 
         if (dealerValue > 21) {
-            this.endHand('dealer-bust');
+            await this.endHand('dealer-bust');
         } else if (dealerValue > playerValue) {
-            this.endHand('dealer');
+            await this.endHand('dealer');
         } else if (dealerValue < playerValue) {
-            this.endHand('player');
+            await this.endHand('player');
         } else {
-            this.endHand('tie');
+            await this.endHand('tie');
         }
         this.updateSplitButtonState();
     }
@@ -556,11 +697,22 @@ class BlackjackGame {
         }, 2500);
     }
 
-    endHand(winner) {
+    async endHand(winner) {
         this.gameInProgress = false;
         this.betBtn.disabled = false;
         this.hitBtn.disabled = true;
         this.standBtn.disabled = true;
+
+        // First, flip the face-down card if it exists and hasn't been flipped yet
+        if (this.dealerHand.length >= 2) {
+            const dealerCards = this.dealerCardsElement.children;
+            if (dealerCards.length >= 2) {
+                const faceDownCard = dealerCards[0]; // First card is face-down
+                if (faceDownCard && faceDownCard.classList.contains('card-back')) {
+                    await this.animateCardFlip(faceDownCard, this.dealerHand[0]);
+                }
+            }
+        }
 
         // Always reveal dealer's full hand
         this.dealerCardsElement.innerHTML = '';
@@ -580,6 +732,7 @@ class BlackjackGame {
             this.balance += this.currentBet * 2;
             this.showNotification('Dealer busts! You win!');
             this.showPlayerMessage('You Win!', '#FFD700', null, '#B8860B');
+            this.showDealerMessage('Dealer Busts!', '#ff4444');
         } else {
             this.showNotification('Dealer wins!');
             this.showDealerMessage('Dealer Wins!', '#FFD700');
@@ -678,12 +831,13 @@ class BlackjackGame {
         // Only allow split if first two cards are same value and enough balance
         if (!this.gameInProgress || this.playerHand.length !== 2) return;
         if (this.playerHand[0].numericValue !== this.playerHand[1].numericValue) return;
-        if (this.balance < this.currentBet) {
+        const currentBalance = CasinoBalance.getBalance();
+        if (currentBalance < this.currentBet) {
             this.showNotification('Not enough balance to split!');
             return;
         }
         // Deduct second bet
-        this.balance -= this.currentBet;
+        this.balance = currentBalance - this.currentBet;
         this.updateBalance();
         // Create two hands
         this.splitActiveHand = 0; // 0 or 1
@@ -829,15 +983,31 @@ class BlackjackGame {
         this.hitBtn.disabled = true;
         this.standBtn.disabled = true;
         this.splitBtn.disabled = true;
-        this.dealerCardsElement.innerHTML = '';
-        for (let card of this.dealerHand) {
-            this.dealerCardsElement.appendChild(this.createCardElement(card));
-        }
+        // Don't flip the card yet - keep it face down until dealer draws
         while (this.calculateHandValue(this.dealerHand) < 17) {
+            // Flip the face-down card before drawing the first additional card
+            if (this.dealerHand.length === 2) {
+                // Find the face-down card (should be the first dealer card)
+                const dealerCards = this.dealerCardsElement.children;
+                if (dealerCards.length >= 2) {
+                    const faceDownCard = dealerCards[0]; // First card is face-down
+                    if (faceDownCard) {
+                        await this.animateCardFlip(faceDownCard, this.dealerHand[0]);
+                    }
+                }
+            }
+            
             this.dealerHand.push(this.deck.draw());
-            this.dealerCardsElement.appendChild(this.createCardElement(this.dealerHand[this.dealerHand.length - 1]));
+            await this.animateDealCardToHand(this.dealerCardsElement, this.dealerHand.length - 1);
+            
+            // Flip the newly dealt card after it's in position
+            const newCard = this.dealerCardsElement.children[this.dealerHand.length - 1];
+            if (newCard) {
+                await this.animateCardFlip(newCard, this.dealerHand[this.dealerHand.length - 1]);
+            }
         }
         // Compare both hands to dealer
+        let dealerBustShown = false;
         for (let i = 0; i < 2; i++) {
             let playerValue = typeof this.splitResults[i] === 'number' ? this.splitResults[i] : this.calculateHandValue(this.splitHands[i]);
             let dealerValue = this.calculateHandValue(this.dealerHand);
@@ -848,6 +1018,10 @@ class BlackjackGame {
                 this.balance += bet * 2;
                 this.showNotification(`Hand ${i + 1}: Dealer busts! You win!`);
                 this.showPlayerMessage('You Win!', '#FFD700', i, '#B8860B');
+                if (!dealerBustShown) {
+                    this.showDealerMessage('Dealer Busts!', '#ff4444');
+                    dealerBustShown = true;
+                }
             } else if (playerValue > dealerValue) {
                 this.balance += bet * 2;
                 this.showNotification(`Hand ${i + 1}: You win!`);
@@ -871,12 +1045,13 @@ class BlackjackGame {
 
     updateSplitButtonState() {
         // Enable split if player has two cards of the same value and enough balance, and not already split
+        const currentBalance = CasinoBalance.getBalance();
         if (
             this.gameInProgress &&
             !this.splitHands &&
             this.playerHand.length === 2 &&
             this.playerHand[0].numericValue === this.playerHand[1].numericValue &&
-            this.balance >= this.currentBet
+            currentBalance >= this.currentBet
         ) {
             this.splitBtn.disabled = false;
         } else {
@@ -919,7 +1094,10 @@ class PlinkoGame {
         
         this.initPegs();
         this.initControls();
-        this.draw();
+        this.updateBalance();
+        
+        // Start animation loop to keep pegs visible
+        this.startAnimationLoop();
     }
 
     initPegs() {
@@ -1161,6 +1339,15 @@ class PlinkoGame {
         }
     }
 
+    startAnimationLoop() {
+        // Start a continuous animation loop to keep pegs visible
+        const animate = () => {
+            this.draw();
+            requestAnimationFrame(animate);
+        };
+        animate();
+    }
+
     update() {
         for (let ball of this.balls) {
             if (ball.resolved) continue;
@@ -1346,7 +1533,10 @@ class PlinkoGame {
 
     showPlinkoResult(slot) {
         let payout = this.payouts[slot] || 0;
-        let message = payout > 0 ? `Plinko: You won ${this.bet * payout}!` : 'Plinko: No win!';
+        let winAmount = this.bet * payout;
+        // Round to 2 decimal places for display
+        let roundedWinAmount = Math.round(winAmount * 100) / 100;
+        let message = payout > 0 ? `Plinko: You won ${roundedWinAmount}!` : 'Plinko: No win!';
         // Determine color based on slot
         let color = '#fff8e1';
         if (payout >= 9) color = '#e74c3c';
@@ -1354,7 +1544,7 @@ class PlinkoGame {
         else if (payout > 0.5) color = '#f1c40f';
         this.showNotification(message, color);
         if (payout > 0) {
-            this.balance += this.bet * payout;
+            this.balance += winAmount;
             this.updateBalance();
         }
     }
@@ -1462,6 +1652,9 @@ class PlinkoGame {
 
 // Initialize the games when the page loads
 window.addEventListener('load', () => {
+    // Initialize balance on all pages
+    CasinoBalance.getBalance();
+    
     // Only initialize Blackjack if we're on the blackjack page
     if (document.querySelector('.blackjack-table')) {
         window.blackjackGame = new BlackjackGame();
@@ -1470,5 +1663,18 @@ window.addEventListener('load', () => {
     // Only initialize Plinko if we're on the plinko page
     if (document.querySelector('.plinko-table')) {
         window.plinkoGame = new PlinkoGame();
+    }
+    
+    // If we're on the homepage, ensure balance is displayed
+    if (document.querySelector('.homepage-container')) {
+        const balance = CasinoBalance.getBalance();
+        CasinoBalance.setBalance(balance);
+    }
+});
+
+// Add R key listener to add 5000 to balance on any page
+document.addEventListener('keydown', (event) => {
+    if (event.key.toLowerCase() === 'r') {
+        CasinoBalance.updateBalance(5000);
     }
 }); 

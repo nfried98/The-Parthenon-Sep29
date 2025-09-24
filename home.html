@@ -4,19 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Parthenon</title>
-    <script>
-        // Check if the page was refreshed
-        if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
-            localStorage.setItem('casinoBalance', '5000');
-            window.location.replace('home.html');
-        }
-        // Load balance from localStorage
-        window.addEventListener('DOMContentLoaded', () => {
-            const balance = parseInt(localStorage.getItem('casinoBalance')) || 0;
-            document.querySelector('.balance-amount').textContent = Math.floor(balance);
-            document.querySelector('.coin-balance').textContent = Math.floor(balance);
-        });
-    </script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="homepage.css">
@@ -24,7 +11,7 @@
 <body>
     <div class="coin-tab">
         <span class="coin-icon">🪙</span>
-        <span class="coin-balance">1000</span>
+        <span class="coin-balance">0</span>
     </div>
 
     <div class="homepage-container">
@@ -32,7 +19,7 @@
             <h1>The Parthenon</h1>
             <div class="balance-container">
                 <span class="balance-label">Balance:</span>
-                <span class="balance-amount">1000</span>
+                <span class="balance-amount">0</span>
                 <span class="currency">🪙</span>
             </div>
         </header>
@@ -48,7 +35,30 @@
 
             <a href="plinko.html" class="game-card plinko-card">
                 <div class="card-content">
-                    <div class="game-icon"><img src="images/fullcolumn.svg" alt="Plinko Icon"></div>
+                    <div class="game-icon">
+                        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 8px #FFD70088);">
+                            <!-- Copy exact circle from blackjack logo -->
+                            <ellipse cx="30" cy="30" rx="25" ry="25" stroke="#FFD700" stroke-width="2.5" fill="none"/>
+                            <!-- Copy exact diamond paths from blackjack logo -->
+                            <path d="M12 30 Q14 20 30 10 Q46 20 48 30" stroke="#FFD700" stroke-width="2" fill="none"/>
+                            <path d="M12 30 Q14 40 30 50 Q46 40 48 30" stroke="#FFD700" stroke-width="2" fill="none"/>
+                            <!-- Pyramid of pegs with even spacing -->
+                            <!-- Row 1 (top) -->
+                            <circle cx="30" cy="15" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                            <!-- Row 2 -->
+                            <circle cx="25" cy="22" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                            <circle cx="35" cy="22" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                            <!-- Row 3 -->
+                            <circle cx="22" cy="29" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                            <circle cx="30" cy="29" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                            <circle cx="38" cy="29" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                            <!-- Row 4 -->
+                            <circle cx="20" cy="36" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                            <circle cx="27" cy="36" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                            <circle cx="33" cy="36" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                            <circle cx="40" cy="36" r="1.5" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+                        </svg>
+                    </div>
                     <h2>Plinko</h2>
                     <p>Drop the ball and watch it bounce through ancient Greek columns</p>
                 </div>
