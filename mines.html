@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mines - The Parthenon Casino</title>
+    <script>
+        // Check if the page was refreshed
+        if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+            window.location.replace('home.html');
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="game-pages.css">
+</head>
+<body>
+    <div class="coin-tab">
+        <span class="coin-icon">🪙</span>
+        <span class="coin-balance">0</span>
+    </div>
+
+    <div class="game-page-container" style="position:relative;">
+        <header class="game-header">
+            <a href="home.html" class="back-button">← Back to Games</a>
+            <h1>Mines</h1>
+            <div class="balance-container">
+                <span class="balance-label">Balance:</span>
+                <span class="balance-amount">0</span>
+                <span class="currency">🪙</span>
+            </div>
+        </header>
+
+        <main class="game-content">
+            <div class="mines-layout">
+                <aside class="mines-sidebar">
+                    <div class="sidebar-section">
+                        <div class="sidebar-tabs">
+                            <button class="sidebar-tab active" data-mode="manual">Manual</button>
+                            <button class="sidebar-tab" data-mode="auto">Auto</button>
+                        </div>
+                        <div class="sidebar-field">
+                            <label for="sidebar-bet-amount">Bet Amount</label>
+                            <div class="sidebar-bet-input-group">
+                                <input id="sidebar-bet-amount" type="number" min="1" step="1" value="10">
+                                <span class="sidebar-coin">🪙</span>
+                                <button type="button" class="sidebar-bet-mult">2×</button>
+                                <button type="button" class="sidebar-bet-max">Max</button>
+                            </div>
+                        </div>
+                        <div class="sidebar-field">
+                            <label for="sidebar-mines-count">Mines</label>
+                            <div class="custom-dropdown">
+                                <div class="dropdown-selected" id="mines-dropdown-selected">
+                                    <span>3 Mines</span>
+                                    <span class="dropdown-arrow">▼</span>
+                                </div>
+                                <div class="dropdown-options" id="mines-dropdown-options">
+                                    <div class="dropdown-option" data-value="1">1 Mine</div>
+                                    <div class="dropdown-option" data-value="3">3 Mines</div>
+                                    <div class="dropdown-option" data-value="5">5 Mines</div>
+                                    <div class="dropdown-option" data-value="10">10 Mines</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="sidebar-bet-btn">Start Game</button>
+                    </div>
+                </aside>
+                <div class="mines-main">
+                    <div class="game-container">
+                        <div class="mines-table">
+                            <h2>Mines</h2>
+                            <div class="mines-container">
+                                <canvas id="mines-canvas" width="600" height="600"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mines-notification-stack"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="notification" style="display:none;"></div>
+    <script src="script.js"></script>
+</body>
+</html>

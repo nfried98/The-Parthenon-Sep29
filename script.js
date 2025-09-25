@@ -267,7 +267,7 @@ class BlackjackGame {
         return cardBack;
     }
 
-    createCardElement(card) {
+    createCardElement(card, noAnimations = false) {
         const cardElement = document.createElement('div');
         cardElement.className = 'card';
         
@@ -289,6 +289,7 @@ class BlackjackGame {
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            ${noAnimations ? 'transition: none !important; opacity: 1 !important;' : ''}
         `;
 
         // Greek key pattern border
@@ -382,19 +383,27 @@ class BlackjackGame {
         return value;
     }
 
+    isNaturalBlackjack(hand) {
+        return hand.length === 2 && this.calculateHandValue(hand) === 21;
+    }
+
     async animateCardFlip(cardElement, newCard) {
-        // Create a flip animation by scaling the card
-        cardElement.style.transition = 'transform 0.3s ease-in-out';
-        cardElement.style.transform = 'scaleX(0)';
+        // Check if card is already squished down (from deal animation)
+        const isAlreadySquished = cardElement.style.transform === 'scaleX(0)';
         
-        await new Promise(resolve => setTimeout(resolve, 150));
+        if (!isAlreadySquished) {
+            // Squish the face-down card first (for dealer's first card)
+            cardElement.style.transition = 'transform 0.15s ease-in-out';
+            cardElement.style.transform = 'scaleX(0)';
+            await new Promise(resolve => setTimeout(resolve, 150));
+        }
         
-        // Replace the card content
-        const newElement = this.createCardElement(newCard);
+        // Replace with face-up card
+        const newElement = this.createCardElement(newCard, true);
         cardElement.replaceWith(newElement);
         
-        // Animate the new card back
-        newElement.style.transition = 'transform 0.3s ease-in-out';
+        // Unsquish the face-up card
+        newElement.style.transition = 'transform 0.15s ease-in-out';
         newElement.style.transform = 'scaleX(0)';
         
         // Force reflow
@@ -402,12 +411,12 @@ class BlackjackGame {
         
         newElement.style.transform = 'scaleX(1)';
         
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 150));
         newElement.style.transition = '';
         newElement.style.transform = '';
     }
 
-    async animateDealCardToHand(targetContainer, cardIndex, handOverride) {
+    async animateDealCardToHand(targetContainer, cardIndex, handOverride, noFade = false) {
         // Find the deck element
         const deck = document.querySelector('.deck');
         if (!deck) return;
@@ -454,9 +463,12 @@ class BlackjackGame {
         animCard.style.left = `${phCenterX - 30}px`;
         animCard.style.top = `${phCenterY - 45}px`;
         await new Promise(res => setTimeout(res, 400));
-        animCard.style.opacity = '0';
-        await new Promise(res => setTimeout(res, 120));
-        animCard.remove();
+        
+        if (!noFade) {
+            animCard.style.opacity = '0';
+            await new Promise(res => setTimeout(res, 120));
+        }
+        
         // Remove placeholder and insert real card in its place
         let realCard;
         if (handOverride) {
@@ -470,7 +482,42 @@ class BlackjackGame {
                         : this.dealerHand[this.dealerHand.length - 1])
             );
         }
-        placeholder.replaceWith(realCard);
+        
+        if (noFade) {
+            // Check if this is the dealer's first card (should stay face-down, no animation)
+            const isDealerFirstCard = targetContainer === this.dealerCardsElement && cardIndex === 0;
+            
+            if (isDealerFirstCard) {
+                // Dealer's first card: just place it without animation
+                placeholder.replaceWith(realCard);
+            } else {
+                // Use squish-down animation for all other cards
+                animCard.style.transition = 'transform 0.15s ease-in-out';
+                animCard.style.transform = 'scaleX(0)';
+                await new Promise(res => setTimeout(res, 150)); // Wait for full squish
+                placeholder.replaceWith(realCard);
+                
+                // Start unsquish animation and wait for it to complete
+                realCard.style.transition = 'transform 0.15s ease-in-out';
+                realCard.style.transform = 'scaleX(0)';
+                
+                // Force reflow
+                realCard.offsetWidth;
+                
+                realCard.style.transform = 'scaleX(1)';
+                await new Promise(res => setTimeout(res, 150)); // Wait for unsquish
+                
+                // Clean up transitions
+                realCard.style.transition = '';
+                realCard.style.transform = '';
+            }
+        } else {
+            animCard.style.opacity = '0';
+            await new Promise(res => setTimeout(res, 60));
+            placeholder.replaceWith(realCard);
+        }
+        
+        animCard.remove();
     }
 
     async animateCardReturnToDeck(cardElement) {
@@ -492,29 +539,27 @@ class BlackjackGame {
         animCard.style.top = `${cardRect.top}px`;
         animCard.style.width = `${cardRect.width}px`;
         animCard.style.height = `${cardRect.height}px`;
-        animCard.style.transition = 'left 0.4s cubic-bezier(.7,1,.7,1), top 0.4s cubic-bezier(.7,1,.7,1), transform 0.4s cubic-bezier(.7,1,.7,1)';
-        animCard.style.zIndex = '1'; // Low but positive z-index
+        animCard.style.transition = 'left 0.2s cubic-bezier(.7,1,.7,1), top 0.2s cubic-bezier(.7,1,.7,1), transform 0.2s cubic-bezier(.7,1,.7,1)';
+        animCard.style.zIndex = '1';
         animCard.style.pointerEvents = 'none';
-        animCard.style.opacity = '1'; // Keep fully visible
+        animCard.style.opacity = '1';
         
-        // Append to the same container as the deck instead of body
-        const deckContainer = deck.parentElement;
-        deckContainer.appendChild(animCard);
+        // Append to deck container (not body)
+        deck.parentElement.appendChild(animCard);
         
         // Force reflow
         animCard.offsetWidth;
         
-        // Animate to deck position with rotation, but slightly above the deck
+        // Animate to deck center position
         const deckCenterX = deckRect.left + deckRect.width / 2;
-        const deckCenterY = deckRect.top + deckRect.height / 2 - 10; // Move cards 10px above deck center
+        const deckCenterY = deckRect.top + deckRect.height / 2 - 10;
         
         animCard.style.left = `${deckCenterX - cardRect.width / 2}px`;
         animCard.style.top = `${deckCenterY - cardRect.height / 2}px`;
         animCard.style.transform = 'rotate(180deg) scale(0.8)';
-        // No opacity change - keep fully visible
         
         // Wait for animation to complete
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Remove the animated card immediately (no fade)
         animCard.remove();
@@ -573,18 +618,42 @@ class BlackjackGame {
         for (let i = 0; i < 2; i++) {
             // Player card
             this.playerHand.push(this.deck.draw());
-            await this.animateDealCardToHand(this.playerCardsElement, this.playerHand.length - 1);
+            await this.animateDealCardToHand(this.playerCardsElement, this.playerHand.length - 1, null, true);
             // Dealer card
             this.dealerHand.push(this.deck.draw());
-            await this.animateDealCardToHand(this.dealerCardsElement, this.dealerHand.length - 1);
+            await this.animateDealCardToHand(this.dealerCardsElement, this.dealerHand.length - 1, null, true);
         }
         this.updateSplitButtonState();
         this.betBtn.disabled = true;
         this.hitBtn.disabled = false;
         this.standBtn.disabled = false;
         this.updateSplitButtonState();
-        if (this.calculateHandValue(this.playerHand) === 21) {
+        
+        // Check for natural blackjack
+        if (this.isNaturalBlackjack(this.playerHand)) {
+            await this.handleNaturalBlackjack();
+        } else if (this.calculateHandValue(this.playerHand) === 21) {
             this.stand();
+        }
+    }
+
+    async handleNaturalBlackjack() {
+        // Disable all buttons immediately
+        this.hitBtn.disabled = true;
+        this.standBtn.disabled = true;
+        this.splitBtn.disabled = true;
+        
+        // Check if dealer also has natural blackjack
+        if (this.isNaturalBlackjack(this.dealerHand)) {
+            // Both have natural blackjack - it's a push
+            await this.endHand('tie');
+            this.showNotification('Both have blackjack! Push!');
+        } else {
+            // Player wins with natural blackjack (1.5x payout)
+            this.balance += Math.floor(this.currentBet * 2.5); // Original bet + 1.5x bonus
+            await this.endHand('player');
+            this.showNotification('Blackjack! You win!');
+            this.showPlayerMessage('Blackjack!', '#FFD700', null, '#B8860B');
         }
     }
 
@@ -599,7 +668,7 @@ class BlackjackGame {
             const handDivs = Array.from(this.playerCardsElement.querySelectorAll('.split-hand'));
             const handDiv = handDivs[this.splitActiveHand];
             if (handDiv) {
-                await this.animateDealCardToHand(handDiv, handDiv.children.length, this.splitHands[this.splitActiveHand]);
+                await this.animateDealCardToHand(handDiv, handDiv.children.length, this.splitHands[this.splitActiveHand], true);
             }
             this.updateSplitUI();
             if (this.calculateHandValue(this.splitHands[this.splitActiveHand]) > 21) {
@@ -612,7 +681,7 @@ class BlackjackGame {
             return;
         }
         this.playerHand.push(this.deck.draw());
-        await this.animateDealCardToHand(this.playerCardsElement, this.playerHand.length - 1);
+        await this.animateDealCardToHand(this.playerCardsElement, this.playerHand.length - 1, null, true);
         if (this.calculateHandValue(this.playerHand) > 21) {
             this.showBustMessage();
             // Disable buttons immediately when player busts
@@ -660,13 +729,9 @@ class BlackjackGame {
             }
             
             this.dealerHand.push(this.deck.draw());
-            await this.animateDealCardToHand(this.dealerCardsElement, this.dealerHand.length - 1);
             
-            // Flip the newly dealt card after it's in position
-            const newCard = this.dealerCardsElement.children[this.dealerHand.length - 1];
-            if (newCard) {
-                await this.animateCardFlip(newCard, this.dealerHand[this.dealerHand.length - 1]);
-            }
+            // Deal the card with animation (creates face-up card directly)
+            await this.animateDealCardToHand(this.dealerCardsElement, this.dealerHand.length - 1, null, true);
         }
 
         const playerValue = this.calculateHandValue(this.playerHand);
@@ -724,6 +789,7 @@ class BlackjackGame {
             this.balance += this.currentBet * 2;
             this.showNotification('You win!');
             this.showPlayerMessage('You Win!', '#FFD700', null, '#B8860B');
+            this.showDealerMessage('Dealer Loses!', '#ff4444');
         } else if (winner === 'tie') {
             this.balance += this.currentBet;
             this.showNotification('Push!');
@@ -900,11 +966,16 @@ class BlackjackGame {
 
         // Animate dealing the new card to each hand
         for (let i = 0; i < 2; i++) {
-            await this.animateDealCardToHand(handDivs[i], 1, this.splitHands[i]);
-            // Add glow to both cards in the active hand
+            await this.animateDealCardToHand(handDivs[i], 1, this.splitHands[i], true);
+            // Add glow only to the active hand
             if (i === this.splitActiveHand) {
                 for (let cardElem of handDivs[i].children) {
                     cardElem.style.boxShadow = '0 0 12px 2px #FFD700';
+                }
+            } else {
+                // Ensure no glow on inactive hands
+                for (let cardElem of handDivs[i].children) {
+                    cardElem.style.boxShadow = '';
                 }
             }
         }
@@ -944,8 +1015,12 @@ class BlackjackGame {
             handDiv.style.gap = '0.5rem';
             for (let j = 0; j < this.splitHands[i].length; j++) {
                 const cardElem = this.createCardElement(this.splitHands[i][j]);
+                // Only add glow to the currently active hand
                 if (i === this.splitActiveHand) {
                     cardElem.style.boxShadow = '0 0 12px 2px #FFD700';
+                } else {
+                    // Ensure no glow on inactive hands
+                    cardElem.style.boxShadow = '';
                 }
                 handDiv.appendChild(cardElem);
             }
@@ -983,39 +1058,40 @@ class BlackjackGame {
         this.hitBtn.disabled = true;
         this.standBtn.disabled = true;
         this.splitBtn.disabled = true;
-        // Don't flip the card yet - keep it face down until dealer draws
+        
+        // Always reveal the dealer's face-down card first
+        const dealerCards = this.dealerCardsElement.children;
+        if (dealerCards.length >= 2) {
+            const faceDownCard = dealerCards[0]; // First card is face-down
+            if (faceDownCard) {
+                await this.animateCardFlip(faceDownCard, this.dealerHand[0]);
+            }
+        }
+        
+        // Now play dealer hand
         while (this.calculateHandValue(this.dealerHand) < 17) {
-            // Flip the face-down card before drawing the first additional card
-            if (this.dealerHand.length === 2) {
-                // Find the face-down card (should be the first dealer card)
-                const dealerCards = this.dealerCardsElement.children;
-                if (dealerCards.length >= 2) {
-                    const faceDownCard = dealerCards[0]; // First card is face-down
-                    if (faceDownCard) {
-                        await this.animateCardFlip(faceDownCard, this.dealerHand[0]);
-                    }
-                }
-            }
-            
             this.dealerHand.push(this.deck.draw());
-            await this.animateDealCardToHand(this.dealerCardsElement, this.dealerHand.length - 1);
             
-            // Flip the newly dealt card after it's in position
-            const newCard = this.dealerCardsElement.children[this.dealerHand.length - 1];
-            if (newCard) {
-                await this.animateCardFlip(newCard, this.dealerHand[this.dealerHand.length - 1]);
-            }
+            // Deal the card with animation (creates face-up card directly)
+            await this.animateDealCardToHand(this.dealerCardsElement, this.dealerHand.length - 1, null, true);
         }
         // Compare both hands to dealer
         let dealerBustShown = false;
+        let totalWinnings = 0;
+        let totalLosses = 0;
+        
         for (let i = 0; i < 2; i++) {
             let playerValue = typeof this.splitResults[i] === 'number' ? this.splitResults[i] : this.calculateHandValue(this.splitHands[i]);
             let dealerValue = this.calculateHandValue(this.dealerHand);
             let bet = this.currentBet;
+            
             if (playerValue === 'bust' || playerValue > 21) {
                 this.showNotification(`Hand ${i + 1}: Bust!`);
+                totalLosses += bet;
+                this.showPlayerMessage('Bust!', '#ff4444', i);
             } else if (dealerValue > 21) {
-                this.balance += bet * 2;
+                // Player wins when dealer busts
+                totalWinnings += bet * 2; // Original bet + winnings
                 this.showNotification(`Hand ${i + 1}: Dealer busts! You win!`);
                 this.showPlayerMessage('You Win!', '#FFD700', i, '#B8860B');
                 if (!dealerBustShown) {
@@ -1023,16 +1099,29 @@ class BlackjackGame {
                     dealerBustShown = true;
                 }
             } else if (playerValue > dealerValue) {
-                this.balance += bet * 2;
+                // Player wins with higher value
+                totalWinnings += bet * 2; // Original bet + winnings
                 this.showNotification(`Hand ${i + 1}: You win!`);
                 this.showPlayerMessage('You Win!', '#FFD700', i, '#B8860B');
+                if (!dealerBustShown) {
+                    this.showDealerMessage('Dealer Loses!', '#ff4444');
+                    dealerBustShown = true;
+                }
             } else if (playerValue < dealerValue) {
+                // Player loses
+                totalLosses += bet;
                 this.showNotification(`Hand ${i + 1}: Dealer wins!`);
+                this.showPlayerMessage('You Lose!', '#ff4444', i);
             } else {
-                this.balance += bet;
+                // Push - return original bet
+                totalWinnings += bet;
                 this.showNotification(`Hand ${i + 1}: Push!`);
+                this.showPlayerMessage('Push!', '#3399ff', i);
             }
         }
+        
+        // Apply net change to balance
+        this.balance += totalWinnings - totalLosses;
         this.updateBalance();
         this.splitHands = null;
         this.splitResults = null;
@@ -1044,13 +1133,13 @@ class BlackjackGame {
     }
 
     updateSplitButtonState() {
-        // Enable split if player has two cards of the same value and enough balance, and not already split
+        // Enable split if player has two cards of the same rank and enough balance, and not already split
         const currentBalance = CasinoBalance.getBalance();
         if (
             this.gameInProgress &&
             !this.splitHands &&
             this.playerHand.length === 2 &&
-            this.playerHand[0].numericValue === this.playerHand[1].numericValue &&
+            this.playerHand[0].value === this.playerHand[1].value &&
             currentBalance >= this.currentBet
         ) {
             this.splitBtn.disabled = false;
@@ -1650,6 +1739,781 @@ class PlinkoGame {
     }
 }
 
+// Mines Game Implementation
+class MinesGame {
+    constructor() {
+        this.canvas = document.getElementById('mines-canvas');
+        if (!this.canvas) return; // Exit if not on mines page
+        
+        this.ctx = this.canvas.getContext('2d');
+        this.gridSize = 5; // 5x5 grid
+        
+        // Set canvas size to match display size
+        this.resizeCanvas();
+        
+        // Add resize listener for responsive design
+        window.addEventListener('resize', () => this.resizeCanvas());
+        this.minesCount = 3;
+        this.mines = [];
+        this.revealedCells = [];
+        this.gameState = 'waiting'; // 'waiting', 'playing', 'won', 'lost'
+        this.showMines = false;
+        this.cashOutPayout = 0;
+        this.showLossMessage = false;
+        this.dimOpacity = 0;
+        this.textOpacity = 0;
+        this.fadeInProgress = 0;
+        this.bet = 10;
+        this.balance = CasinoBalance.getBalance();
+        this.isAutoMode = false;
+        this.autoInterval = null;
+        this.currentMultiplier = 1.0;
+        this.multipliers = {
+            1: 1.00,
+            3: 1.50,
+            5: 2.00,
+            10: 3.00
+        };
+        
+        this.balanceElement = document.querySelector('.balance-amount');
+        this.notificationStack = document.querySelector('.mines-notification-stack');
+        this.betInput = document.getElementById('sidebar-bet-amount');
+        this.betMultBtn = document.querySelector('.sidebar-bet-mult');
+        this.betMaxBtn = document.querySelector('.sidebar-bet-max');
+        this.betBtn = document.querySelector('.sidebar-bet-btn');
+        this.minesDropdownSelected = document.getElementById('mines-dropdown-selected');
+        this.minesDropdownOptions = document.getElementById('mines-dropdown-options');
+        this.manualTab = document.querySelector('.sidebar-tab[data-mode="manual"]');
+        this.autoTab = document.querySelector('.sidebar-tab[data-mode="auto"]');
+        
+        this.initControls();
+        this.updateBalance();
+        this.drawBoard();
+        
+        // Refresh balance when page becomes visible (in case user switched from another game)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.balance = CasinoBalance.getBalance();
+                this.updateBalance();
+            }
+        });
+        
+        // Start animation loop
+        this.startAnimationLoop();
+    }
+
+    resizeCanvas() {
+        const container = this.canvas.parentElement;
+        const containerRect = container.getBoundingClientRect();
+        
+        // Set canvas size to match container
+        this.canvas.width = containerRect.width;
+        this.canvas.height = containerRect.height;
+        
+        // Update dimensions
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
+        this.cellSize = Math.min(this.width, this.height) / this.gridSize;
+        
+        // Center the grid
+        this.gridOffsetX = (this.width - this.cellSize * this.gridSize) / 2;
+        this.gridOffsetY = (this.height - this.cellSize * this.gridSize) / 2;
+    }
+
+    initControls() {
+        // Bet input controls
+        this.betInput.addEventListener('input', () => {
+            this.bet = Math.max(1, parseInt(this.betInput.value) || 1);
+            this.betInput.value = this.bet;
+        });
+
+        // Bet multiplier button
+        this.betMultBtn.addEventListener('click', () => {
+            if (this.gameState === 'waiting') {
+                this.bet *= 2;
+                this.betInput.value = this.bet;
+            }
+        });
+
+        // Bet max button
+        this.betMaxBtn.addEventListener('click', () => {
+            if (this.gameState === 'waiting') {
+                this.balance = CasinoBalance.getBalance(); // Get fresh balance
+                this.bet = Math.floor(this.balance);
+                this.betInput.value = this.bet;
+            }
+        });
+
+        // Main bet button
+        this.betBtn.addEventListener('click', () => {
+            if (this.gameState === 'waiting') {
+                this.startGame();
+            } else if (this.gameState === 'playing') {
+                this.cashOut();
+            } else if (this.gameState === 'won' || this.gameState === 'lost') {
+                this.playAgain();
+            }
+        });
+
+        // Custom mines dropdown
+        this.initCustomDropdown();
+
+        // Tab switching
+        this.manualTab.addEventListener('click', () => {
+            this.setMode('manual');
+        });
+
+        this.autoTab.addEventListener('click', () => {
+            this.setMode('auto');
+        });
+
+        // Canvas click handler
+        this.canvas.addEventListener('click', (e) => {
+            if (this.gameState === 'playing') {
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                this.handleCellClick(x, y);
+            }
+        });
+
+        this.updateMultiplier();
+    }
+
+    initCustomDropdown() {
+        // Toggle dropdown on click
+        this.minesDropdownSelected.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleDropdown();
+        });
+
+        // Handle option selection
+        this.minesDropdownOptions.addEventListener('click', (e) => {
+            if (e.target.classList.contains('dropdown-option')) {
+                const value = parseInt(e.target.dataset.value);
+                this.selectMineCount(value);
+                this.closeDropdown();
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.custom-dropdown')) {
+                this.closeDropdown();
+            }
+        });
+
+        // Initialize with default selection
+        this.selectMineCount(3);
+    }
+
+    toggleDropdown() {
+        const isOpen = this.minesDropdownOptions.classList.contains('open');
+        if (isOpen) {
+            this.closeDropdown();
+        } else {
+            this.openDropdown();
+        }
+    }
+
+    openDropdown() {
+        this.minesDropdownOptions.classList.add('open');
+        this.minesDropdownSelected.classList.add('active');
+    }
+
+    closeDropdown() {
+        this.minesDropdownOptions.classList.remove('open');
+        this.minesDropdownSelected.classList.remove('active');
+    }
+
+    selectMineCount(count) {
+        // Allow changes when waiting or when game has ended (won/lost)
+        if (this.gameState === 'playing') return;
+        
+        this.minesCount = count;
+        this.updateMultiplier();
+        
+        // Update selected text
+        const selectedText = count === 1 ? '1 Mine' : `${count} Mines`;
+        this.minesDropdownSelected.querySelector('span:first-child').textContent = selectedText;
+        
+        // Update option selection
+        this.minesDropdownOptions.querySelectorAll('.dropdown-option').forEach(option => {
+            option.classList.remove('selected');
+            if (parseInt(option.dataset.value) === count) {
+                option.classList.add('selected');
+            }
+        });
+    }
+
+    enableDropdown() {
+        this.minesDropdownSelected.style.opacity = '1';
+        this.minesDropdownSelected.style.cursor = 'pointer';
+    }
+
+    disableDropdown() {
+        this.minesDropdownSelected.style.opacity = '0.5';
+        this.minesDropdownSelected.style.cursor = 'not-allowed';
+    }
+
+    setMode(mode) {
+        this.isAutoMode = mode === 'auto';
+        
+        // Update tab appearance
+        this.manualTab.classList.toggle('active', mode === 'manual');
+        this.autoTab.classList.toggle('active', mode === 'auto');
+        
+        // Update button text
+        if (mode === 'auto') {
+            this.betBtn.textContent = 'Start Auto';
+        } else {
+            this.betBtn.textContent = 'Start Game';
+        }
+    }
+
+    updateMultiplier() {
+        this.currentMultiplier = this.multipliers[this.minesCount] || 1.0;
+    }
+
+    startGame() {
+        // Get fresh balance from CasinoBalance system
+        this.balance = CasinoBalance.getBalance();
+        
+        if (this.bet > this.balance) {
+            this.showNotification('Insufficient balance!', '#ff4444');
+            return;
+        }
+
+        this.balance -= this.bet;
+        this.updateBalance();
+        
+        this.gameState = 'playing';
+        this.revealedCells = [];
+        this.generateMines();
+        this.drawBoard();
+        
+        this.betBtn.textContent = 'Cash Out';
+        this.betBtn.disabled = false;
+        
+        // Disable dropdown during gameplay
+        this.disableDropdown();
+        
+        this.showNotification(`Game started! Bet: ${this.bet} 🪙`, '#4CAF50');
+        
+        if (this.isAutoMode) {
+            this.startAutoPlay();
+        }
+    }
+
+    generateMines() {
+        this.mines = [];
+        const totalCells = this.gridSize * this.gridSize;
+        const minePositions = [];
+        
+        // Generate random mine positions
+        while (minePositions.length < this.minesCount) {
+            const pos = Math.floor(Math.random() * totalCells);
+            if (!minePositions.includes(pos)) {
+                minePositions.push(pos);
+            }
+        }
+        
+        // Convert to grid coordinates
+        minePositions.forEach(pos => {
+            const row = Math.floor(pos / this.gridSize);
+            const col = pos % this.gridSize;
+            this.mines.push({ row, col });
+        });
+    }
+
+    handleCellClick(x, y) {
+        if (this.gameState !== 'playing') return;
+        
+        // Adjust coordinates for grid offset
+        const adjustedX = x - this.gridOffsetX;
+        const adjustedY = y - this.gridOffsetY;
+        
+        // Check if click is within grid bounds
+        if (adjustedX < 0 || adjustedY < 0 || 
+            adjustedX >= this.cellSize * this.gridSize || 
+            adjustedY >= this.cellSize * this.gridSize) {
+            return;
+        }
+        
+        const col = Math.floor(adjustedX / this.cellSize);
+        const row = Math.floor(adjustedY / this.cellSize);
+        
+        if (row < 0 || row >= this.gridSize || col < 0 || col >= this.gridSize) return;
+        
+        // Check if already revealed
+        const cellKey = `${row}-${col}`;
+        if (this.revealedCells.includes(cellKey)) return;
+        
+        // Check if it's a mine
+        const isMine = this.mines.some(mine => mine.row === row && mine.col === col);
+        
+        if (isMine) {
+            this.gameLost();
+        } else {
+            this.revealedCells.push(cellKey);
+            this.drawBoard();
+            
+            // Check if all safe cells are revealed
+            const totalSafeCells = this.gridSize * this.gridSize - this.minesCount;
+            if (this.revealedCells.length === totalSafeCells) {
+                this.gameWon();
+            }
+        }
+    }
+
+    cashOut() {
+        if (this.gameState !== 'playing') return;
+        
+        const payout = Math.floor(this.bet * this.currentMultiplier * this.revealedCells.length);
+        this.balance += payout;
+        this.updateBalance();
+        
+        this.gameState = 'won';
+        this.betBtn.textContent = 'Play again?';
+        
+        // Re-enable dropdown after game ends
+        this.enableDropdown();
+        
+        // Show mines and display payout
+        this.showCashOutResult(payout);
+        
+        this.showNotification(`Cashed out! +${payout} 🪙`, '#4CAF50');
+    }
+
+    gameWon() {
+        const payout = Math.floor(this.bet * this.currentMultiplier * this.revealedCells.length);
+        this.balance += payout;
+        this.updateBalance();
+        
+        this.gameState = 'won';
+        this.betBtn.textContent = 'Play again?';
+        
+        // Re-enable dropdown after game ends
+        this.enableDropdown();
+        
+        this.showNotification(`You won! +${payout} 🪙`, '#4CAF50');
+    }
+
+    gameLost() {
+        this.gameState = 'lost';
+        this.betBtn.textContent = 'Play again?';
+        
+        // Re-enable dropdown after game ends
+        this.enableDropdown();
+        
+        // Show mines and display loss message
+        this.showLossResult();
+        
+        this.showNotification(`Mine hit! Game over.`, '#ff4444');
+    }
+
+    showLossResult() {
+        // Set flag to show mines and dim the board
+        this.showMines = true;
+        this.showLossMessage = true;
+        this.dimOpacity = 0;
+        this.textOpacity = 0;
+        this.startFadeIn();
+    }
+
+    showCashOutResult(payout) {
+        // Set flag to show mines and dim the board
+        this.showMines = true;
+        this.cashOutPayout = payout;
+        this.dimOpacity = 0;
+        this.textOpacity = 0;
+        this.startFadeIn();
+    }
+
+    startFadeIn() {
+        const fadeInDuration = 1000; // 1 second
+        const startTime = Date.now();
+        
+        const fadeIn = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / fadeInDuration, 1);
+            
+            // Dim overlay fades in first (0-0.6 seconds)
+            if (progress <= 0.6) {
+                this.dimOpacity = (progress / 0.6) * 0.6;
+            } else {
+                this.dimOpacity = 0.6;
+            }
+            
+            // Text fades in after dim starts (0.3-1.0 seconds)
+            if (progress >= 0.3) {
+                const textProgress = (progress - 0.3) / 0.7;
+                this.textOpacity = Math.min(textProgress, 1);
+            }
+            
+            this.fadeInProgress = progress;
+            this.drawBoard();
+            
+            if (progress < 1) {
+                requestAnimationFrame(fadeIn);
+            }
+        };
+        
+        fadeIn();
+    }
+
+    playAgain() {
+        // Reset game state and immediately start a new game
+        this.gameState = 'waiting';
+        this.revealedCells = [];
+        this.mines = [];
+        this.showMines = false;
+        this.cashOutPayout = 0;
+        this.showLossMessage = false;
+        this.dimOpacity = 0;
+        this.textOpacity = 0;
+        this.fadeInProgress = 0;
+        
+        // Start new game immediately
+        this.startGame();
+    }
+
+    resetGame() {
+        this.gameState = 'waiting';
+        this.revealedCells = [];
+        this.mines = [];
+        this.showMines = false;
+        this.cashOutPayout = 0;
+        this.showLossMessage = false;
+        this.dimOpacity = 0;
+        this.textOpacity = 0;
+        this.fadeInProgress = 0;
+        this.betBtn.textContent = this.isAutoMode ? 'Start Auto' : 'Start Game';
+        this.drawBoard();
+    }
+
+    startAutoPlay() {
+        // Simple auto-play: reveal random cells until win/loss
+        const autoPlay = () => {
+            if (this.gameState !== 'playing') return;
+            
+            const availableCells = [];
+            for (let row = 0; row < this.gridSize; row++) {
+                for (let col = 0; col < this.gridSize; col++) {
+                    const cellKey = `${row}-${col}`;
+                    if (!this.revealedCells.includes(cellKey)) {
+                        availableCells.push({ row, col });
+                    }
+                }
+            }
+            
+            if (availableCells.length > 0) {
+                const randomCell = availableCells[Math.floor(Math.random() * availableCells.length)];
+                const centerX = this.gridOffsetX + randomCell.col * this.cellSize + this.cellSize/2;
+                const centerY = this.gridOffsetY + randomCell.row * this.cellSize + this.cellSize/2;
+                this.handleCellClick(centerX, centerY);
+            }
+        };
+        
+        this.autoInterval = setInterval(autoPlay, 1000);
+    }
+
+    drawBoard() {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        
+        // Draw background with gradient
+        const gradient = this.ctx.createLinearGradient(0, 0, this.width, this.height);
+        gradient.addColorStop(0, '#1a2236');
+        gradient.addColorStop(1, '#232a36');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        // Draw outer border with glow effect
+        this.drawGlowBorder();
+        
+        // Draw grid cells
+        for (let row = 0; row < this.gridSize; row++) {
+            for (let col = 0; col < this.gridSize; col++) {
+                this.drawCell(row, col);
+            }
+        }
+        
+        // Draw revealed cells
+        this.revealedCells.forEach(cellKey => {
+            const [row, col] = cellKey.split('-').map(Number);
+            this.drawRevealedCell(row, col);
+        });
+        
+        // Draw mines if game is lost or cashed out
+        if (this.gameState === 'lost' || this.showMines) {
+            this.mines.forEach(mine => {
+                this.drawMine(mine.row, mine.col);
+            });
+        }
+        
+        // Draw dim overlay and message if game ended
+        if (this.showMines && (this.cashOutPayout > 0 || this.showLossMessage)) {
+            this.drawDimOverlay();
+            if (this.showLossMessage) {
+                this.drawLossMessage();
+            } else {
+                this.drawWinMessage();
+            }
+        }
+    }
+
+    drawGlowBorder() {
+        const borderWidth = 8;
+        const glowSize = 20;
+        
+        // Outer glow
+        this.ctx.shadowColor = '#FFD700';
+        this.ctx.shadowBlur = glowSize;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+        
+        // Draw border
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = borderWidth;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        
+        const x = this.gridOffsetX - borderWidth/2;
+        const y = this.gridOffsetY - borderWidth/2;
+        const w = this.cellSize * this.gridSize + borderWidth;
+        const h = this.cellSize * this.gridSize + borderWidth;
+        
+        this.ctx.strokeRect(x, y, w, h);
+        
+        // Reset shadow
+        this.ctx.shadowBlur = 0;
+    }
+
+    drawCell(row, col) {
+        const x = this.gridOffsetX + col * this.cellSize;
+        const y = this.gridOffsetY + row * this.cellSize;
+        
+        // Cell background with subtle gradient
+        const cellGradient = this.ctx.createLinearGradient(x, y, x + this.cellSize, y + this.cellSize);
+        cellGradient.addColorStop(0, '#2a3441');
+        cellGradient.addColorStop(1, '#1e252f');
+        
+        this.ctx.fillStyle = cellGradient;
+        this.ctx.fillRect(x + 2, y + 2, this.cellSize - 4, this.cellSize - 4);
+        
+        // Cell border
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(x + 2, y + 2, this.cellSize - 4, this.cellSize - 4);
+        
+        // Inner highlight
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 0.5;
+        this.ctx.globalAlpha = 0.3;
+        this.ctx.strokeRect(x + 4, y + 4, this.cellSize - 8, this.cellSize - 8);
+        this.ctx.globalAlpha = 1;
+    }
+
+    drawRevealedCell(row, col) {
+        const x = this.gridOffsetX + col * this.cellSize;
+        const y = this.gridOffsetY + row * this.cellSize;
+        
+        // Draw revealed cell background
+        const revealedGradient = this.ctx.createLinearGradient(x, y, x + this.cellSize, y + this.cellSize);
+        revealedGradient.addColorStop(0, '#2d4a2d');
+        revealedGradient.addColorStop(1, '#1a3a1a');
+        
+        this.ctx.fillStyle = revealedGradient;
+        this.ctx.fillRect(x + 2, y + 2, this.cellSize - 4, this.cellSize - 4);
+        
+        // Draw gem/diamond with glow
+        this.ctx.shadowColor = '#4CAF50';
+        this.ctx.shadowBlur = 8;
+        
+        const centerX = x + this.cellSize / 2;
+        const centerY = y + this.cellSize / 2;
+        const gemSize = this.cellSize * 0.3;
+        
+        // Draw gem
+        this.ctx.fillStyle = '#4CAF50';
+        this.ctx.beginPath();
+        this.ctx.moveTo(centerX, centerY - gemSize);
+        this.ctx.lineTo(centerX + gemSize, centerY);
+        this.ctx.lineTo(centerX, centerY + gemSize);
+        this.ctx.lineTo(centerX - gemSize, centerY);
+        this.ctx.closePath();
+        this.ctx.fill();
+        
+        // Draw gem outline
+        this.ctx.shadowBlur = 0;
+        this.ctx.strokeStyle = '#2E7D32';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        
+        // Draw sparkle effect
+        this.ctx.fillStyle = '#8BC34A';
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, gemSize * 0.3, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
+
+    drawMine(row, col) {
+        const x = this.gridOffsetX + col * this.cellSize;
+        const y = this.gridOffsetY + row * this.cellSize;
+        const centerX = x + this.cellSize / 2;
+        const centerY = y + this.cellSize / 2;
+        
+        // Draw explosion background
+        const explosionGradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, this.cellSize / 2);
+        explosionGradient.addColorStop(0, '#ff6b6b');
+        explosionGradient.addColorStop(0.7, '#ff4444');
+        explosionGradient.addColorStop(1, '#cc0000');
+        
+        this.ctx.fillStyle = explosionGradient;
+        this.ctx.fillRect(x + 2, y + 2, this.cellSize - 4, this.cellSize - 4);
+        
+        // Draw mine explosion with glow
+        this.ctx.shadowColor = '#ff4444';
+        this.ctx.shadowBlur = 15;
+        
+        this.ctx.fillStyle = '#ff4444';
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, this.cellSize / 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Draw explosion spikes
+        this.ctx.shadowBlur = 8;
+        this.ctx.strokeStyle = '#ff4444';
+        this.ctx.lineWidth = 4;
+        
+        for (let i = 0; i < 8; i++) {
+            const angle = (i * Math.PI * 2) / 8;
+            const startRadius = this.cellSize / 4;
+            const endRadius = this.cellSize / 2 - 8;
+            
+            const startX = centerX + Math.cos(angle) * startRadius;
+            const startY = centerY + Math.sin(angle) * startRadius;
+            const endX = centerX + Math.cos(angle) * endRadius;
+            const endY = centerY + Math.sin(angle) * endRadius;
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(startX, startY);
+            this.ctx.lineTo(endX, endY);
+            this.ctx.stroke();
+        }
+        
+        // Reset shadow
+        this.ctx.shadowBlur = 0;
+    }
+
+    drawDimOverlay() {
+        // Draw semi-transparent overlay over the entire board with animated opacity
+        this.ctx.fillStyle = `rgba(0, 0, 0, ${this.dimOpacity})`;
+        this.ctx.fillRect(0, 0, this.width, this.height);
+    }
+
+    drawWinMessage() {
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+        
+        // Set global alpha for fade-in effect
+        this.ctx.globalAlpha = this.textOpacity;
+        
+        // Draw "You won" text with subtle styling
+        this.ctx.fillStyle = '#4CAF50';
+        this.ctx.font = 'bold 2.5rem Cinzel, serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        
+        // Add subtle text shadow
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.shadowBlur = 4;
+        this.ctx.shadowOffsetX = 2;
+        this.ctx.shadowOffsetY = 2;
+        
+        this.ctx.fillText('You won!', centerX, centerY);
+        
+        // Reset shadow and alpha
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+        this.ctx.globalAlpha = 1;
+    }
+
+    drawLossMessage() {
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+        
+        // Set global alpha for fade-in effect
+        this.ctx.globalAlpha = this.textOpacity;
+        
+        // Draw "You hit a mine" text with red styling
+        this.ctx.fillStyle = '#ff4444';
+        this.ctx.font = 'bold 2.5rem Cinzel, serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        
+        // Add subtle text shadow
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.shadowBlur = 4;
+        this.ctx.shadowOffsetX = 2;
+        this.ctx.shadowOffsetY = 2;
+        
+        this.ctx.fillText('You hit a mine', centerX, centerY);
+        
+        // Reset shadow and alpha
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+        this.ctx.globalAlpha = 1;
+    }
+
+    updateBalance() {
+        if (this.balanceElement) {
+            this.balanceElement.textContent = Math.floor(this.balance);
+        }
+        // Update the coin tab at the top
+        const coinTab = document.querySelector('.coin-balance');
+        if (coinTab) coinTab.textContent = Math.floor(this.balance);
+        // Save balance to localStorage
+        CasinoBalance.setBalance(this.balance);
+    }
+
+    showNotification(message, color = '#FFD700') {
+        if (!this.notificationStack) return;
+        
+        const notification = document.createElement('div');
+        notification.className = 'mines-notification';
+        notification.textContent = message;
+        notification.style.setProperty('--notif-accent', color);
+        
+        this.notificationStack.insertBefore(notification, this.notificationStack.firstChild);
+        
+        // Remove old notifications
+        while (this.notificationStack.children.length > 5) {
+            this.notificationStack.removeChild(this.notificationStack.lastChild);
+        }
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 3000);
+    }
+
+    startAnimationLoop() {
+        const animate = () => {
+            this.drawBoard();
+            requestAnimationFrame(animate);
+        };
+        animate();
+    }
+}
+
 // Initialize the games when the page loads
 window.addEventListener('load', () => {
     // Initialize balance on all pages
@@ -1663,6 +2527,11 @@ window.addEventListener('load', () => {
     // Only initialize Plinko if we're on the plinko page
     if (document.querySelector('.plinko-table')) {
         window.plinkoGame = new PlinkoGame();
+    }
+    
+    // Only initialize Mines if we're on the mines page
+    if (document.querySelector('.mines-table')) {
+        window.minesGame = new MinesGame();
     }
     
     // If we're on the homepage, ensure balance is displayed
