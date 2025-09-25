@@ -102,9 +102,10 @@ class BlackjackGame {
         this.hitBtn = document.querySelector('.hit-btn');
         this.standBtn = document.querySelector('.stand-btn');
         this.splitBtn = document.querySelector('.split-btn');
-        this.betMinusBtn = document.querySelector('.bet-minus');
-        this.betPlusBtn = document.querySelector('.bet-plus');
         this.betMaxBtn = document.querySelector('.bet-max');
+        this.bet2xBtn = document.querySelector('.bet-2x');
+        this.bet3xBtn = document.querySelector('.bet-3x');
+        this.betHalfBtn = document.querySelector('.bet-half');
         // Render the deck card back
         const deckElem = document.querySelector('.deck');
         if (deckElem) {
@@ -114,13 +115,21 @@ class BlackjackGame {
     }
 
     attachEventListeners() {
-        this.betBtn.addEventListener('click', () => this.startNewHand());
+        this.betBtn.addEventListener('click', () => {
+            // If ace split is complete, finish the hands instead of starting new hand
+            if (this.splitHands && this.splitResults[0] !== null && this.splitResults[1] !== null && this.betBtn.textContent === 'Continue') {
+                this.finishSplitHands();
+            } else {
+                this.startNewHand();
+            }
+        });
         this.hitBtn.addEventListener('click', () => this.hit());
         this.standBtn.addEventListener('click', () => this.stand());
         this.splitBtn.addEventListener('click', () => this.splitHand());
-        this.betMinusBtn.addEventListener('click', () => this.adjustBet(-10));
-        this.betPlusBtn.addEventListener('click', () => this.adjustBet(10));
         this.betMaxBtn.addEventListener('click', () => this.setMaxBet());
+        this.bet2xBtn.addEventListener('click', () => this.multiplyBet(2));
+        this.bet3xBtn.addEventListener('click', () => this.multiplyBet(3));
+        this.betHalfBtn.addEventListener('click', () => this.multiplyBet(0.5));
         
         // Handle manual bet input
         this.betElement.addEventListener('input', (e) => {
@@ -165,6 +174,35 @@ class BlackjackGame {
         const newBet = this.currentBet + amount;
         const currentBalance = CasinoBalance.getBalance();
         if (newBet >= 0 && newBet <= currentBalance) {
+            this.currentBet = newBet;
+            this.betElement.value = this.currentBet;
+            this.betElement.classList.add('highlight');
+            setTimeout(() => this.betElement.classList.remove('highlight'), 500);
+        }
+    }
+
+    multiplyBet(multiplier) {
+        if (this.gameInProgress) return;
+        let newBet;
+        
+        if (multiplier === 0.5) {
+            // For /2 button: handle odd numbers by splitting and betting the smaller
+            const halfBet = this.currentBet / 2;
+            if (halfBet % 1 !== 0) {
+                // Odd number when divided by 2 (e.g., 15 / 2 = 7.5)
+                // Split into two whole numbers and bet the smaller one
+                newBet = Math.floor(halfBet); // 7.5 -> 7
+            } else {
+                // Even number when divided by 2 (e.g., 14 / 2 = 7)
+                newBet = halfBet;
+            }
+        } else {
+            // For 2x and 3x buttons: just multiply normally
+            newBet = Math.floor(this.currentBet * multiplier);
+        }
+        
+        const currentBalance = CasinoBalance.getBalance();
+        if (newBet >= 1 && newBet <= currentBalance) {
             this.currentBet = newBet;
             this.betElement.value = this.currentBet;
             this.betElement.classList.add('highlight');
@@ -980,12 +1018,19 @@ class BlackjackGame {
             }
         }
 
-        // If ace split, auto-stand both
+        // If ace split, auto-stand both hands but let player see them
         if (isAceSplit) {
             this.splitResults[0] = this.calculateHandValue(this.splitHands[0]);
             this.splitResults[1] = this.calculateHandValue(this.splitHands[1]);
-            await new Promise(res => setTimeout(res, 800));
-            this.finishSplitHands();
+            // Disable all buttons since both hands are complete
+            this.hitBtn.disabled = true;
+            this.standBtn.disabled = true;
+            this.splitBtn.disabled = true;
+            // Update bet button to proceed to dealer
+            this.betBtn.textContent = 'Continue';
+            this.betBtn.disabled = false;
+            // Show notification that both hands are complete
+            this.showNotification('Ace split: Both hands complete!');
             return;
         }
 
@@ -1767,6 +1812,104 @@ class MinesGame {
         this.balance = CasinoBalance.getBalance();
         this.isAutoMode = false;
         this.autoInterval = null;
+        
+        // Multiplier table for different diamonds cleared and mines
+        this.multiplierTable = {
+            1: { // 1 diamond cleared
+                1: 1.03, 2: 1.08, 3: 1.12, 4: 1.18, 5: 1.24, 6: 1.30, 7: 1.37, 8: 1.46,
+                9: 1.55, 10: 1.65, 11: 1.77, 12: 1.90, 13: 2.06, 14: 2.25, 15: 2.47,
+                16: 2.75, 17: 3.09, 18: 3.54, 19: 4.12, 20: 4.95, 21: 6.19, 22: 8.25,
+                23: 12.37, 24: 24.75
+            },
+            2: { // 2 diamonds cleared
+                1: 1.08, 2: 1.17, 3: 1.29, 4: 1.41, 5: 1.56, 6: 1.74, 7: 1.94, 8: 2.18,
+                9: 2.47, 10: 2.83, 11: 3.26, 12: 3.81, 13: 4.50, 14: 5.40, 15: 6.60,
+                16: 8.25, 17: 10.61, 18: 14.14, 19: 19.80, 20: 29.70, 21: 49.50, 22: 99,
+                23: 297
+            },
+            3: { // 3 diamonds cleared
+                1: 1.12, 2: 1.29, 3: 1.50, 4: 1.76, 5: 2.00, 6: 2.35, 7: 2.79, 8: 3.35,
+                9: 4.07, 10: 5.00, 11: 6.25, 12: 7.95, 13: 10.35, 14: 13.80, 15: 19.80,
+                16: 29.70, 17: 49.50, 18: 99, 19: 227.70, 20: 682.10, 21: 2273.70, 22: 11368.50
+            },
+            4: { // 4 diamonds cleared
+                1: 1.18, 2: 1.41, 3: 1.71, 4: 2.09, 5: 2.58, 6: 3.23, 7: 4.09, 8: 5.26,
+                9: 6.88, 10: 9.17, 11: 12.51, 12: 17.52, 13: 25.30, 14: 37.95, 15: 59.64,
+                16: 99.39, 17: 178.91, 18: 357.81, 19: 834.90, 20: 2504.70, 21: 12523.50
+            },
+            5: { // 5 diamonds cleared
+                1: 1.24, 2: 1.56, 3: 2.00, 4: 2.58, 5: 3.39, 6: 4.52, 7: 6.14, 8: 8.50,
+                9: 12.04, 10: 17.52, 11: 26.27, 12: 40.87, 13: 66.41, 14: 113.85, 15: 208.72,
+                16: 417.45, 17: 939.26, 18: 2504.70, 19: 8766.45, 20: 52598.70
+            },
+            6: { // 6 diamonds cleared
+                1: 1.30, 2: 1.74, 3: 2.35, 4: 3.23, 5: 4.52, 6: 6.46, 7: 9.44, 8: 14.17,
+                9: 21.89, 10: 35.03, 11: 58.38, 12: 102.17, 13: 189.75, 14: 379.50, 15: 834.90,
+                16: 2087.25, 17: 6261.75, 18: 25047, 19: 175329
+            },
+            7: { // 7 diamonds cleared
+                1: 1.37, 2: 1.94, 3: 2.79, 4: 4.09, 5: 6.14, 6: 9.44, 7: 14.95, 8: 24.47,
+                9: 41.60, 10: 73.95, 11: 138.66, 12: 277.33, 13: 600.87, 14: 1442.10, 15: 3965.77,
+                16: 13219.25, 17: 59486.62, 18: 475893
+            },
+            8: { // 8 diamonds cleared
+                1: 1.46, 2: 2.18, 3: 3.35, 4: 5.26, 5: 8.50, 6: 14.17, 7: 24.47, 8: 44.05,
+                9: 83.20, 10: 166.40, 11: 356.56, 12: 831.98, 13: 2163.15, 14: 6489.45, 15: 23794.65,
+                16: 118973.25, 17: 1070759.25
+            },
+            10: { // 10 diamonds cleared
+                1: 1.65, 2: 2.83, 3: 5.00, 4: 9.17, 5: 17.52, 6: 35.03, 7: 73.95, 8: 166.40,
+                9: 404.10, 10: 1077.61, 11: 3232.84, 12: 11314.94, 13: 49031.4, 14: 294188.4, 15: 3236072.4
+            },
+            11: { // 11 diamonds cleared
+                1: 1.77, 2: 3.26, 3: 6.26, 4: 12.51, 5: 26.27, 6: 58.38, 7: 138.66, 8: 356.56,
+                9: 1010.26, 10: 3232.84, 11: 12123.15, 12: 56574.69, 13: 367735.5, 14: 4412826
+            },
+            12: { // 12 diamonds cleared
+                1: 1.90, 2: 3.81, 3: 7.96, 4: 17.52, 5: 40.87, 6: 102.17, 7: 277.33, 8: 831.98,
+                9: 2828.73, 10: 11314.94, 11: 56574.69, 12: 396022.85, 13: 5148297
+            },
+            13: { // 13 diamonds cleared
+                1: 2.06, 2: 4.50, 3: 10.35, 4: 25.30, 5: 66.41, 6: 189.75, 7: 600.87, 8: 2163.15,
+                9: 9193.39, 10: 49031.4, 11: 367735.5, 12: 5148297
+            },
+            14: { // 14 diamonds cleared
+                1: 2.25, 2: 5.40, 3: 13.80, 4: 37.95, 5: 113.85, 6: 379.50, 7: 1442.10, 8: 6489.45,
+                9: 36773.55, 10: 294188.4, 11: 4412826
+            },
+            15: { // 15 diamonds cleared
+                1: 2.47, 2: 6.60, 3: 18.97, 4: 59.64, 5: 208.72, 6: 834.90, 7: 3965.77, 8: 23794.65,
+                9: 202254.52, 10: 3236072.4
+            },
+            16: { // 16 diamonds cleared
+                1: 2.75, 2: 8.25, 3: 27.11, 4: 99.39, 5: 417.45, 6: 2087.25, 7: 13219.25, 8: 118973.25,
+                9: 2022545.25
+            },
+            17: { // 17 diamonds cleared
+                1: 3.09, 2: 10.61, 3: 40.66, 4: 178.91, 5: 939.26, 6: 6261.75, 7: 59486.62, 8: 1070759.25
+            },
+            18: { // 18 diamonds cleared
+                1: 3.54, 2: 14.14, 3: 65.06, 4: 357.81, 5: 2504.70, 6: 25047, 7: 475893
+            },
+            19: { // 19 diamonds cleared
+                1: 4.12, 2: 19.80, 3: 113.85, 4: 834.90, 5: 8766.45, 6: 175329
+            },
+            20: { // 20 diamonds cleared
+                1: 4.95, 2: 29.70, 3: 227.70, 4: 2504.70, 5: 52598.70
+            },
+            21: { // 21 diamonds cleared
+                1: 6.19, 2: 49.50, 3: 569.25, 4: 12523.50
+            },
+            22: { // 22 diamonds cleared
+                1: 8.25, 2: 99, 3: 2277
+            },
+            23: { // 23 diamonds cleared
+                1: 12.38, 2: 297
+            },
+            24: { // 24 diamonds cleared
+                1: 24.75
+            }
+        };
         this.currentMultiplier = 1.0;
         this.multipliers = {
             1: 1.00,
@@ -1781,8 +1924,9 @@ class MinesGame {
         this.betMultBtn = document.querySelector('.sidebar-bet-mult');
         this.betMaxBtn = document.querySelector('.sidebar-bet-max');
         this.betBtn = document.querySelector('.sidebar-bet-btn');
-        this.minesDropdownSelected = document.getElementById('mines-dropdown-selected');
-        this.minesDropdownOptions = document.getElementById('mines-dropdown-options');
+        this.minesInput = document.getElementById('sidebar-mines-count');
+        this.minesMinusBtn = document.querySelector('.sidebar-mines-minus');
+        this.minesPlusBtn = document.querySelector('.sidebar-mines-plus');
         this.manualTab = document.querySelector('.sidebar-tab[data-mode="manual"]');
         this.autoTab = document.querySelector('.sidebar-tab[data-mode="auto"]');
         
@@ -1829,7 +1973,7 @@ class MinesGame {
 
         // Bet multiplier button
         this.betMultBtn.addEventListener('click', () => {
-            if (this.gameState === 'waiting') {
+            if (this.gameState !== 'playing') {
                 this.bet *= 2;
                 this.betInput.value = this.bet;
             }
@@ -1837,7 +1981,7 @@ class MinesGame {
 
         // Bet max button
         this.betMaxBtn.addEventListener('click', () => {
-            if (this.gameState === 'waiting') {
+            if (this.gameState !== 'playing') {
                 this.balance = CasinoBalance.getBalance(); // Get fresh balance
                 this.bet = Math.floor(this.balance);
                 this.betInput.value = this.bet;
@@ -1855,16 +1999,20 @@ class MinesGame {
             }
         });
 
-        // Custom mines dropdown
-        this.initCustomDropdown();
+        // Mines input
+        this.initMinesInput();
 
         // Tab switching
         this.manualTab.addEventListener('click', () => {
             this.setMode('manual');
         });
 
-        this.autoTab.addEventListener('click', () => {
-            this.setMode('auto');
+        // Disable Auto tab
+        this.autoTab.classList.add('disabled');
+        this.autoTab.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
         });
 
         // Canvas click handler
@@ -1883,80 +2031,83 @@ class MinesGame {
         this.updateMultiplier();
     }
 
-    initCustomDropdown() {
-        // Toggle dropdown on click
-        this.minesDropdownSelected.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleDropdown();
-        });
-
-        // Handle option selection
-        this.minesDropdownOptions.addEventListener('click', (e) => {
-            if (e.target.classList.contains('dropdown-option')) {
-                const value = parseInt(e.target.dataset.value);
-                this.selectMineCount(value);
-                this.closeDropdown();
+    initMinesInput() {
+        // Handle mines input changes
+        this.minesInput.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            if (value >= 1 && value <= 24) {
+                this.minesCount = value;
             }
         });
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.custom-dropdown')) {
-                this.closeDropdown();
+        // Handle minus button
+        this.minesMinusBtn.addEventListener('click', () => {
+            if (this.gameState === 'waiting') {
+                const currentValue = parseInt(this.minesInput.value);
+                if (currentValue > 1) {
+                    this.minesInput.value = currentValue - 1;
+                    this.minesCount = currentValue - 1;
+                }
             }
         });
 
-        // Initialize with default selection
-        this.selectMineCount(3);
-    }
-
-    toggleDropdown() {
-        const isOpen = this.minesDropdownOptions.classList.contains('open');
-        if (isOpen) {
-            this.closeDropdown();
-        } else {
-            this.openDropdown();
-        }
-    }
-
-    openDropdown() {
-        this.minesDropdownOptions.classList.add('open');
-        this.minesDropdownSelected.classList.add('active');
-    }
-
-    closeDropdown() {
-        this.minesDropdownOptions.classList.remove('open');
-        this.minesDropdownSelected.classList.remove('active');
-    }
-
-    selectMineCount(count) {
-        // Allow changes when waiting or when game has ended (won/lost)
-        if (this.gameState === 'playing') return;
-        
-        this.minesCount = count;
-        this.updateMultiplier();
-        
-        // Update selected text
-        const selectedText = count === 1 ? '1 Mine' : `${count} Mines`;
-        this.minesDropdownSelected.querySelector('span:first-child').textContent = selectedText;
-        
-        // Update option selection
-        this.minesDropdownOptions.querySelectorAll('.dropdown-option').forEach(option => {
-            option.classList.remove('selected');
-            if (parseInt(option.dataset.value) === count) {
-                option.classList.add('selected');
+        // Handle plus button
+        this.minesPlusBtn.addEventListener('click', () => {
+            if (this.gameState === 'waiting') {
+                const currentValue = parseInt(this.minesInput.value);
+                if (currentValue < 24) {
+                    this.minesInput.value = currentValue + 1;
+                    this.minesCount = currentValue + 1;
+                }
             }
         });
+
+        // Initialize with default value
+        this.minesCount = 3;
+        this.minesInput.value = 3;
     }
 
-    enableDropdown() {
-        this.minesDropdownSelected.style.opacity = '1';
-        this.minesDropdownSelected.style.cursor = 'pointer';
+
+    enableMinesInput() {
+        this.minesInput.disabled = false;
+        this.minesInput.style.opacity = '1';
+        this.minesInput.style.cursor = 'text';
+        this.minesMinusBtn.disabled = false;
+        this.minesPlusBtn.disabled = false;
     }
 
-    disableDropdown() {
-        this.minesDropdownSelected.style.opacity = '0.5';
-        this.minesDropdownSelected.style.cursor = 'not-allowed';
+    enableBetInput() {
+        this.betInput.disabled = false;
+        this.betMultBtn.disabled = false;
+        this.betMaxBtn.disabled = false;
+        this.betInput.style.opacity = '1';
+        this.betInput.style.cursor = 'text';
+        
+        // Remove disabled styling
+        document.querySelector('.sidebar-bet-input-group').classList.remove('bet-disabled');
+        document.querySelector('.sidebar-mines-input-group').classList.remove('bet-disabled');
+        this.betMultBtn.classList.remove('bet-disabled');
+        this.betMaxBtn.classList.remove('bet-disabled');
+        this.minesMinusBtn.classList.remove('bet-disabled');
+        this.minesPlusBtn.classList.remove('bet-disabled');
+        this.minesInput.classList.remove('bet-disabled');
+    }
+
+    disableBetInput() {
+        this.betInput.disabled = true;
+        this.betMultBtn.disabled = true;
+        this.betMaxBtn.disabled = true;
+        this.betInput.style.opacity = '0.5';
+        this.betInput.style.cursor = 'not-allowed';
+        
+        // Add disabled styling
+        document.querySelector('.sidebar-bet-input-group').classList.add('bet-disabled');
+        document.querySelector('.sidebar-mines-input-group').classList.add('bet-disabled');
+        this.betMultBtn.classList.add('bet-disabled');
+        this.betMaxBtn.classList.add('bet-disabled');
+        this.minesMinusBtn.classList.add('bet-disabled');
+        this.minesPlusBtn.classList.add('bet-disabled');
+        this.minesInput.classList.add('bet-disabled');
     }
 
     setMode(mode) {
@@ -1998,8 +2149,9 @@ class MinesGame {
         this.betBtn.textContent = 'Cash Out';
         this.betBtn.disabled = false;
         
-        // Disable dropdown during gameplay
-        this.disableDropdown();
+        // Disable inputs during gameplay
+        this.disableBetInput();
+        this.disableMinesInput();
         
         this.showNotification(`Game started! Bet: ${this.bet} 🪙`, '#4CAF50');
         
@@ -2069,18 +2221,31 @@ class MinesGame {
         }
     }
 
+    calculateMultiplier(diamondsCleared, minesCount) {
+        // Get the multiplier for the specific number of diamonds cleared and mines
+        if (this.multiplierTable[diamondsCleared] && this.multiplierTable[diamondsCleared][minesCount]) {
+            return this.multiplierTable[diamondsCleared][minesCount];
+        }
+        
+        // Fallback to base multiplier if not found
+        return 1.0;
+    }
+
     cashOut() {
         if (this.gameState !== 'playing') return;
         
-        const payout = Math.floor(this.bet * this.currentMultiplier * this.revealedCells.length);
+        const diamondsCleared = this.revealedCells.length;
+        const multiplier = this.calculateMultiplier(diamondsCleared, this.minesCount);
+        const payout = Math.floor(this.bet * multiplier);
         this.balance += payout;
         this.updateBalance();
         
         this.gameState = 'won';
         this.betBtn.textContent = 'Play again?';
         
-        // Re-enable dropdown after game ends
-        this.enableDropdown();
+        // Re-enable inputs after game ends
+        this.enableBetInput();
+        this.enableMinesInput();
         
         // Show mines and display payout
         this.showCashOutResult(payout);
@@ -2089,7 +2254,9 @@ class MinesGame {
     }
 
     gameWon() {
-        const payout = Math.floor(this.bet * this.currentMultiplier * this.revealedCells.length);
+        const diamondsCleared = this.revealedCells.length;
+        const multiplier = this.calculateMultiplier(diamondsCleared, this.minesCount);
+        const payout = Math.floor(this.bet * multiplier);
         this.balance += payout;
         this.updateBalance();
         
@@ -2097,7 +2264,8 @@ class MinesGame {
         this.betBtn.textContent = 'Play again?';
         
         // Re-enable dropdown after game ends
-        this.enableDropdown();
+        this.enableBetInput();
+        this.enableMinesInput();
         
         this.showNotification(`You won! +${payout} 🪙`, '#4CAF50');
     }
@@ -2107,7 +2275,8 @@ class MinesGame {
         this.betBtn.textContent = 'Play again?';
         
         // Re-enable dropdown after game ends
-        this.enableDropdown();
+        this.enableBetInput();
+        this.enableMinesInput();
         
         // Show mines and display loss message
         this.showLossResult();
@@ -2269,9 +2438,9 @@ class MinesGame {
         const borderWidth = 8;
         const glowSize = 20;
         
-        // Outer glow
-        this.ctx.shadowColor = '#FFD700';
-        this.ctx.shadowBlur = glowSize;
+        // No glow
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
         this.ctx.shadowOffsetX = 0;
         this.ctx.shadowOffsetY = 0;
         
@@ -2321,43 +2490,29 @@ class MinesGame {
         const x = this.gridOffsetX + col * this.cellSize;
         const y = this.gridOffsetY + row * this.cellSize;
         
-        // Draw revealed cell background
+        // Draw revealed cell background (dimmer gold)
         const revealedGradient = this.ctx.createLinearGradient(x, y, x + this.cellSize, y + this.cellSize);
-        revealedGradient.addColorStop(0, '#2d4a2d');
-        revealedGradient.addColorStop(1, '#1a3a1a');
+        revealedGradient.addColorStop(0, '#8B6914');
+        revealedGradient.addColorStop(1, '#6B4F0A');
         
         this.ctx.fillStyle = revealedGradient;
         this.ctx.fillRect(x + 2, y + 2, this.cellSize - 4, this.cellSize - 4);
         
-        // Draw gem/diamond with glow
-        this.ctx.shadowColor = '#4CAF50';
-        this.ctx.shadowBlur = 8;
+        // Draw thicker outline for revealed tile
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(x + 2, y + 2, this.cellSize - 4, this.cellSize - 4);
         
+        // Draw drachma coin (same as balance indicator)
         const centerX = x + this.cellSize / 2;
         const centerY = y + this.cellSize / 2;
-        const gemSize = this.cellSize * 0.3;
+        const coinSize = this.cellSize * 0.6;
         
-        // Draw gem
-        this.ctx.fillStyle = '#4CAF50';
-        this.ctx.beginPath();
-        this.ctx.moveTo(centerX, centerY - gemSize);
-        this.ctx.lineTo(centerX + gemSize, centerY);
-        this.ctx.lineTo(centerX, centerY + gemSize);
-        this.ctx.lineTo(centerX - gemSize, centerY);
-        this.ctx.closePath();
-        this.ctx.fill();
-        
-        // Draw gem outline
-        this.ctx.shadowBlur = 0;
-        this.ctx.strokeStyle = '#2E7D32';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
-        
-        // Draw sparkle effect
-        this.ctx.fillStyle = '#8BC34A';
-        this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, gemSize * 0.3, 0, Math.PI * 2);
-        this.ctx.fill();
+        // Draw the 🪙 emoji
+        this.ctx.font = `${coinSize}px Arial`;
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('🪙', centerX, centerY);
     }
 
     drawMine(row, col) {

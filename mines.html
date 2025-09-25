@@ -50,16 +50,11 @@
                         </div>
                         <div class="sidebar-field">
                             <label for="sidebar-mines-count">Mines</label>
-                            <div class="custom-dropdown">
-                                <div class="dropdown-selected" id="mines-dropdown-selected">
-                                    <span>3 Mines</span>
-                                    <span class="dropdown-arrow">▼</span>
-                                </div>
-                                <div class="dropdown-options" id="mines-dropdown-options">
-                                    <div class="dropdown-option" data-value="1">1 Mine</div>
-                                    <div class="dropdown-option" data-value="3">3 Mines</div>
-                                    <div class="dropdown-option" data-value="5">5 Mines</div>
-                                    <div class="dropdown-option" data-value="10">10 Mines</div>
+                            <div class="sidebar-mines-input-group">
+                                <input id="sidebar-mines-count" type="number" min="1" max="24" step="1" value="3">
+                                <div class="sidebar-mines-buttons">
+                                    <button type="button" class="sidebar-mines-minus">-</button>
+                                    <button type="button" class="sidebar-mines-plus">+</button>
                                 </div>
                             </div>
                         </div>
@@ -71,7 +66,15 @@
                         <div class="mines-table">
                             <h2>Mines</h2>
                             <div class="mines-container">
-                                <canvas id="mines-canvas" width="600" height="600"></canvas>
+                                <div class="mines-pulse-container">
+                                    <!-- Horizontal pulse lines -->
+                                    <div class="pulse-line pulse-horizontal pulse-top"></div>
+                                    <div class="pulse-line pulse-horizontal pulse-bottom"></div>
+                                    <!-- Vertical pulse lines -->
+                                    <div class="pulse-line pulse-vertical pulse-left"></div>
+                                    <div class="pulse-line pulse-vertical pulse-right"></div>
+                                    <canvas id="mines-canvas" width="600" height="600"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>

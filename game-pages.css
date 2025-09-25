@@ -61,7 +61,7 @@
         linear-gradient(-45deg, transparent 75%, #FFD700 75%);
     background-size: 20px 20px;
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-    border-radius: 18px;
+    border-radius: 0;
     z-index: -1;
     opacity: 0.1;
 }
@@ -227,12 +227,13 @@
     color: #FFD700;
     font-family: 'Cinzel', serif;
     font-size: 1.2rem;
-    min-width: 80px;
+    min-width: 210px;
+    max-width: 210px;
     text-align: center;
     background: transparent;
     border: 1px solid #FFD700;
     border-radius: 4px;
-    padding: 0.4rem;
+    padding: 0.4rem 0.3rem;
     outline: none;
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
 }
@@ -331,7 +332,7 @@
 }
 
 .game-container {
-    max-width: 650px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 0;
     flex: 1 1 0;
@@ -339,9 +340,9 @@
     min-height: 0;
     position: relative;
     background: rgba(0, 0, 0, 0.7);
-    border: 2px solid #FFD700;
-    border-radius: 15px;
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     overflow: hidden;
 }
 
@@ -492,12 +493,13 @@
     color: #FFD700;
     font-family: 'Cinzel', serif;
     font-size: 1.2rem;
-    min-width: 80px;
+    min-width: 210px;
+    max-width: 210px;
     text-align: center;
     background: transparent;
     border: 1px solid #FFD700;
     border-radius: 4px;
-    padding: 0.4rem;
+    padding: 0.4rem 0.3rem;
     outline: none;
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
 }
@@ -693,6 +695,19 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
+.sidebar-tab.disabled {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.sidebar-tab.disabled:hover {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
 .sidebar-field {
     display: flex;
     flex-direction: column;
@@ -713,6 +728,92 @@
     gap: 0.5rem;
     transition: all 0.2s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.sidebar-mines-input-group {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #1a222b 0%, #232a36 100%);
+    border: 2px solid #FFD700;
+    border-radius: 6px;
+    padding: 0.3rem 0.7rem;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.sidebar-mines-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.sidebar-mines-minus,
+.sidebar-mines-plus {
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%) !important;
+    color: #232a36 !important;
+    border: 2px solid #FFD700 !important;
+    border-radius: 4px;
+    padding: 0.1rem 0.9rem;
+    font-size: 1rem;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    margin: 0 0.3rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    min-width: 2.5em;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-mines-minus:hover,
+.sidebar-mines-plus:hover {
+    background: linear-gradient(135deg, #FFE44D 0%, #FFD700 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.sidebar-mines-minus:active,
+.sidebar-mines-plus:active {
+    background: linear-gradient(135deg, #FFD700 0%, #FFC000 100%) !important;
+    transform: translateY(0);
+}
+
+.sidebar-mines-minus:disabled,
+.sidebar-mines-plus:disabled {
+    background: #666;
+    color: #999;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#sidebar-mines-count {
+    background: transparent;
+    border: none;
+    color: #FFD700;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: left;
+    width: 100%;
+    outline: none;
+    flex: 1;
+    font-family: 'Cinzel', serif;
+    padding: 0;
+}
+
+/* Remove spinner arrows */
+#sidebar-mines-count::-webkit-outer-spin-button,
+#sidebar-mines-count::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#sidebar-mines-count[type=number] {
+    -moz-appearance: textfield;
 }
 #sidebar-bet-amount {
     background: transparent;
@@ -882,8 +983,8 @@
 .mines-table {
     background: linear-gradient(135deg, #232a36 60%, #1a2236 100%);
     border: none;
-    border-radius: 28px;
-    box-shadow: 0 8px 40px 0 #FFD70033, 0 2px 0 #FFD700 inset;
+    border-radius: 0;
+    box-shadow: none;
     padding: 0;
     margin: 0 auto;
     display: flex;
@@ -909,9 +1010,9 @@
 
 #mines-canvas {
     background: url('https://www.transparenttextures.com/patterns/marble.png'), #232a36;
-    border: 1.5px solid #FFD700;
-    border-radius: 12px;
-    box-shadow: 0 4px 24px 0 #FFD70033;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     width: 100%;
     height: 100%;
     max-width: 100%;
@@ -919,6 +1020,69 @@
     object-fit: contain;
     display: block;
     box-sizing: border-box;
+}
+
+/* Mines pulse container */
+.mines-pulse-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 1px solid #FFD700;
+}
+
+/* Pulse line base styles */
+.pulse-line {
+    position: absolute;
+    background: linear-gradient(90deg, transparent, transparent, transparent, #FFD700, transparent, transparent, transparent);
+    z-index: 10;
+}
+
+/* Horizontal pulse lines */
+.pulse-horizontal {
+    height: 2px;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, transparent, transparent, #FFD700, transparent, transparent, transparent);
+}
+
+.pulse-top {
+    top: 0;
+    animation: shimmer-horizontal 6s infinite;
+}
+
+.pulse-bottom {
+    bottom: 0;
+    animation: shimmer-horizontal 6s infinite;
+    animation-delay: 4.5s;
+}
+
+/* Vertical pulse lines */
+.pulse-vertical {
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent, transparent, transparent, #FFD700, transparent, transparent, transparent);
+}
+
+.pulse-left {
+    left: 0;
+    animation: shimmer-vertical 4s infinite;
+    animation-delay: 3s;
+}
+
+.pulse-right {
+    right: 0;
+    animation: shimmer-vertical 4s infinite;
+    animation-delay: 1.5s;
+}
+
+/* Animations */
+@keyframes shimmer-horizontal {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes shimmer-vertical {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
 }
 
 /* Mines two-column layout */
@@ -1385,10 +1549,30 @@ body, .game-page-container {
     box-shadow: none !important;
 }
 
-.sidebar-bet-mult.bet-disabled {
+.sidebar-bet-mult.bet-disabled,
+.sidebar-bet-max.bet-disabled {
     border-color: #444 !important;
     background: #444 !important;
-    color: #aaa !important;
+    color: #666 !important;
+    cursor: not-allowed !important;
+}
+
+.sidebar-mines-input-group.bet-disabled {
+    border-color: #444 !important;
+    box-shadow: none !important;
+}
+
+.sidebar-mines-minus.bet-disabled,
+.sidebar-mines-plus.bet-disabled {
+    border-color: #444 !important;
+    background: #444 !important;
+    color: #666 !important;
+    cursor: not-allowed !important;
+}
+
+#sidebar-mines-count.bet-disabled {
+    color: #666 !important;
+    cursor: not-allowed !important;
 }
 
 .sidebar-bet-max {
@@ -1538,3 +1722,67 @@ body, .game-page-container {
         display: none;
     }
 } 
+
+/* New betting buttons for blackjack */
+.bet-2x {
+    background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+    color: white;
+    border: 2px solid #4ECDC4;
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem !important;
+    font-size: 1rem !important;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    min-width: 60px !important;
+}
+
+.bet-2x:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5EDDD4 0%, #4ECDC4 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+}
+
+.bet-3x {
+    background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
+    color: white;
+    border: 2px solid #9B59B6;
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem !important;
+    font-size: 1rem !important;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    min-width: 60px !important;
+}
+
+.bet-3x:hover:not(:disabled) {
+    background: linear-gradient(135deg, #AB69C6 0%, #9B59B6 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+}
+
+.bet-half {
+    background: linear-gradient(135deg, #E67E22 0%, #D35400 100%);
+    color: white;
+    border: 2px solid #E67E22;
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem !important;
+    font-size: 1rem !important;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    min-width: 60px !important;
+}
+
+.bet-half:hover:not(:disabled) {
+    background: linear-gradient(135deg, #F68E32 0%, #E67E22 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
+}
