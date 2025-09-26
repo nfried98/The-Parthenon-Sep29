@@ -383,9 +383,12 @@ class BlackjackGame {
         // Center suit
         const centerSuit = document.createElement('div');
         centerSuit.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             font-size: 2rem;
             font-family: 'Cinzel', serif;
-            margin-top: 18px;
             color: inherit;
             z-index: 2;
         `;
