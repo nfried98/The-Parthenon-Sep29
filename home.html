@@ -95,6 +95,21 @@
             </a>
         </div>
 
+        <!-- Leaderboard Section -->
+        <div class="leaderboard-section">
+            <h2 class="leaderboard-title">🏆 Hall of Champions</h2>
+            <div class="leaderboard-container">
+                <div class="leaderboard-header">
+                    <span class="rank-header">Rank</span>
+                    <span class="player-header">Player</span>
+                    <span class="balance-header">Balance</span>
+                </div>
+                <div id="leaderboard-list" class="leaderboard-list">
+                    <div class="leaderboard-loading">Loading champions...</div>
+                </div>
+            </div>
+        </div>
+
         <div class="decorative-elements">
             <div class="greek-column left"></div>
             <div class="greek-column right"></div>
@@ -102,6 +117,14 @@
             <div class="olive-branch top-right"></div>
             <div class="olive-branch bottom-left"></div>
             <div class="olive-branch bottom-right"></div>
+        </div>
+    </div>
+
+    <!-- Chart Tooltip for Balance History -->
+    <div id="chart-tooltip" class="chart-tooltip hidden">
+        <h4 id="tooltip-title">Balance History</h4>
+        <div class="chart-container">
+            <canvas id="tooltip-chart"></canvas>
         </div>
     </div>
 
@@ -151,6 +174,18 @@
         </div>
     </div>
 
+    <!-- Firebase CDN -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- Chart.js for balance history graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Main Application Script -->
     <script src="script.js"></script>
 </body>
 </html> 

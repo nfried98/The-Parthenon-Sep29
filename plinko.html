@@ -49,6 +49,11 @@
                             </div>
                         </div>
                         <button class="sidebar-bet-btn">Bet</button>
+                        <div id="winnings-container" class="auto-winnings" style="display:none;">
+                            <span class="winnings-label">Auto Winnings:</span>
+                            <span id="winnings-amount">0</span>
+                            <span class="currency">🪙</span>
+                        </div>
                     </div>
                 </aside>
                 <div class="plinko-main">
@@ -67,6 +72,15 @@
     </div>
 
     <div class="notification" style="display:none;"></div>
+    <!-- Firebase CDN -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- Main Application Script -->
     <script src="script.js"></script>
 </body>
 </html> 

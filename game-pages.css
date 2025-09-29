@@ -1481,6 +1481,30 @@ body, .game-page-container {
     box-shadow: none !important;
 }
 
+/* Auto winnings display */
+.auto-winnings {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid #FFD700;
+    border-radius: 8px;
+    padding: 0.5rem 0.6rem;
+}
+
+.auto-winnings .winnings-label {
+    font-family: 'Cinzel', serif;
+    color: #FFD700;
+    font-weight: 600;
+}
+
+.auto-winnings #winnings-amount {
+    font-family: 'Playfair Display', serif;
+    color: #fff;
+    min-width: 60px;
+}
+
 /* --- Notification Stack --- */
 .plinko-notification-stack {
     width: 320px;

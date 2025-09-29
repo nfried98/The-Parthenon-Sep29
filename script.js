@@ -1,4 +1,326 @@
-// Add this at the top of the file, before any class definitions
+// Firebase will be loaded via CDN and available globally
+
+// Authentication and Account Management System
+class CasinoAuth {
+    constructor() {
+        this.currentUser = null;
+        this.isInitialized = false;
+        this.auth = null;
+        this.db = null;
+        this.init();
+    }
+
+    async init() {
+        try {
+            // Wait for Firebase to be loaded
+            await this.waitForFirebase();
+            
+            // Listen for authentication state changes
+            const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            onAuthStateChanged(this.auth, async (user) => {
+                this.currentUser = user;
+                if (user) {
+                    console.log('User signed in:', user.email);
+                    await this.loadUserData();
+                    this.updateUIForLoggedInUser();
+                } else {
+                    console.log('User signed out');
+                    this.updateUIForLoggedOutUser();
+                }
+                this.isInitialized = true;
+            });
+        } catch (error) {
+            console.error('Auth initialization error:', error);
+        }
+    }
+
+    async waitForFirebase() {
+        // Wait for Firebase to be available globally
+        while (!window.firebaseAuth || !window.firebaseDb) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        this.auth = window.firebaseAuth;
+        this.db = window.firebaseDb;
+    }
+
+    async signIn(email, password) {
+        try {
+            const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
+            return { success: true, user: userCredential.user };
+        } catch (error) {
+            console.error('Sign in error:', error);
+            return { success: false, error: this.getErrorMessage(error.code) };
+        }
+    }
+
+    async signUp(email, password, username) {
+        try {
+            const { createUserWithEmailAndPassword, updateProfile } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            const userCredential = await createUserWithEmailAndPassword(this.auth, email, password);
+            await updateProfile(userCredential.user, { displayName: username });
+            
+            // Create user document in Firestore
+            await this.createUserDocument(userCredential.user, username);
+            
+            return { success: true, user: userCredential.user };
+        } catch (error) {
+            console.error('Sign up error:', error);
+            return { success: false, error: this.getErrorMessage(error.code) };
+        }
+    }
+
+    async signOut() {
+        try {
+            const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            await signOut(this.auth);
+            return { success: true };
+        } catch (error) {
+            console.error('Sign out error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async createUserDocument(user, username) {
+        try {
+            const { setDoc, doc, addDoc, collection } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const userDoc = {
+                uid: user.uid,
+                email: user.email,
+                username: username,
+                balance: 1000, // Starting balance
+                createdAt: new Date(),
+                lastLogin: new Date()
+            };
+            
+            await setDoc(doc(this.db, 'users', user.uid), userDoc);
+            
+            // Create initial balance history entry
+            await addDoc(collection(this.db, 'balanceHistory'), {
+                userId: user.uid,
+                balance: 1000,
+                timestamp: new Date(),
+                type: 'initial'
+            });
+            
+            console.log('User document created');
+        } catch (error) {
+            console.error('Error creating user document:', error);
+        }
+    }
+
+    async loadUserData() {
+        if (!this.currentUser) return;
+        
+        try {
+            const { getDoc, doc, setDoc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const userDocRef = doc(this.db, 'users', this.currentUser.uid);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                // Update local balance with Firestore balance
+                CasinoBalance.setBalance(userData.balance || 0);
+                
+                // Update last login
+                await updateDoc(userDocRef, {
+                    lastLogin: new Date()
+                });
+            } else {
+                // User document doesn't exist, create it with initial balance
+                const initialBalance = CasinoBalance.getBalance();
+                await setDoc(userDocRef, {
+                    uid: this.currentUser.uid,
+                    email: this.currentUser.email,
+                    username: this.currentUser.displayName || this.currentUser.email,
+                    balance: initialBalance,
+                    createdAt: new Date(),
+                    lastLogin: new Date()
+                });
+                
+                // Create initial balance history entry
+                await this.saveBalanceHistory(initialBalance, 'initial');
+            }
+        } catch (error) {
+            console.error('Error loading user data:', error);
+        }
+    }
+
+    async saveUserBalance(balance) {
+        if (!this.currentUser) return;
+        
+        try {
+            const { writeBatch, doc, collection, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+
+            const batch = writeBatch(this.db);
+            const userDocRef = doc(this.db, 'users', this.currentUser.uid);
+            const historyDocRef = doc(collection(this.db, 'balanceHistory'));
+
+            // Upsert user doc without a pre-read
+            batch.set(userDocRef, {
+                uid: this.currentUser.uid,
+                email: this.currentUser.email,
+                username: this.currentUser.displayName || this.currentUser.email,
+                balance: balance,
+                lastUpdated: serverTimestamp()
+            }, { merge: true });
+
+            // Add balance history entry
+            batch.set(historyDocRef, {
+                userId: this.currentUser.uid,
+                balance: balance,
+                timestamp: serverTimestamp(),
+                type: 'update'
+            });
+
+            await batch.commit();
+        } catch (error) {
+            console.error('Error saving user balance:', error);
+        }
+    }
+
+    async saveBalanceHistory(balance, type = 'update') {
+        if (!this.currentUser) return;
+        
+        try {
+            const { addDoc, collection } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            await addDoc(collection(this.db, 'balanceHistory'), {
+                userId: this.currentUser.uid,
+                balance: balance,
+                timestamp: new Date(),
+                type: type
+            });
+        } catch (error) {
+            console.error('Error saving balance history:', error);
+        }
+    }
+
+    async getLeaderboard(limitCount = 10) {
+        try {
+            const { query, collection, orderBy, limit, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const q = query(
+                collection(this.db, 'users'),
+                orderBy('balance', 'desc'),
+                limit(limitCount)
+            );
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        } catch (error) {
+            console.error('Error getting leaderboard:', error);
+            return [];
+        }
+    }
+
+    updateUIForLoggedInUser() {
+        // Show user info in header
+        const balanceContainer = document.querySelector('.balance-container');
+        if (balanceContainer && this.currentUser) {
+            const userInfo = document.createElement('div');
+            userInfo.className = 'user-info';
+            userInfo.innerHTML = `
+                <span class="user-name">${this.currentUser.displayName || this.currentUser.email}</span>
+                <button id="sign-out-btn" class="sign-out-btn">Sign Out</button>
+            `;
+            balanceContainer.appendChild(userInfo);
+            
+            // Add sign out functionality
+            document.getElementById('sign-out-btn').addEventListener('click', () => {
+                this.signOut();
+            });
+        }
+        
+        // Hide auth popup if open
+        const authPopup = document.getElementById('auth-popup');
+        if (authPopup) {
+            authPopup.style.display = 'none';
+        }
+        
+        // Load leaderboard
+        this.loadLeaderboard();
+    }
+
+    updateUIForLoggedOutUser() {
+        // Reset balance to zero when user signs out
+        CasinoBalance.setBalance(0);
+        
+        // Remove user info from header
+        const userInfo = document.querySelector('.user-info');
+        if (userInfo) {
+            userInfo.remove();
+        }
+        
+        // Show auth popup
+        const authPopup = document.getElementById('auth-popup');
+        if (authPopup) {
+            authPopup.style.display = 'flex';
+        }
+    }
+
+    getErrorMessage(errorCode) {
+        const errorMessages = {
+            'auth/user-not-found': 'Incorrect email or password.',
+            'auth/wrong-password': 'Incorrect email or password.',
+            'auth/invalid-credential': 'Incorrect email or password.',
+            'auth/invalid-email': 'Invalid email address.',
+            'auth/user-disabled': 'This account has been disabled.',
+            'auth/email-already-in-use': 'An account already exists with this email address.',
+            'auth/weak-password': 'Password should be at least 6 characters.',
+            'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+            'auth/network-request-failed': 'Network error. Please check your connection.',
+            'auth/operation-not-allowed': 'This sign-in method is not enabled.'
+        };
+        return errorMessages[errorCode] || 'Incorrect email or password.';
+    }
+
+    isUserLoggedIn() {
+        return this.currentUser !== null;
+    }
+
+    getCurrentUser() {
+        return this.currentUser;
+    }
+
+    async loadLeaderboard() {
+        const leaderboardList = document.getElementById('leaderboard-list');
+        if (!leaderboardList) return;
+
+        try {
+            const leaderboard = await this.getLeaderboard(10);
+            
+            if (leaderboard.length === 0) {
+                leaderboardList.innerHTML = '<div class="leaderboard-error">No players found</div>';
+                return;
+            }
+
+            leaderboardList.innerHTML = leaderboard.map((player, index) => {
+                const rank = index + 1;
+                const rankClass = rank <= 3 ? `rank-${rank}` : '';
+                const displayName = player.username || player.email || 'Anonymous';
+                const balance = Math.floor(player.balance || 0);
+                
+                return `
+                    <div class="leaderboard-item" 
+                         data-user-id="${player.id}" 
+                         data-user-email="${player.email || displayName}"
+                         onmouseenter="showBalanceHistory(event, '${player.id}', '${player.email || displayName}')"
+                         onmouseleave="hideBalanceHistory()">
+                        <div class="leaderboard-rank ${rankClass}">${rank}</div>
+                        <div class="leaderboard-player">${displayName}</div>
+                        <div class="leaderboard-balance">${balance.toLocaleString()} 🪙</div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading leaderboard:', error);
+            leaderboardList.innerHTML = '<div class="leaderboard-error">Failed to load leaderboard</div>';
+        }
+    }
+}
+
+// Enhanced CasinoBalance class with Firebase integration
 class CasinoBalance {
     static getBalance() {
         const storedBalance = localStorage.getItem('casinoBalance');
@@ -16,12 +338,22 @@ class CasinoBalance {
     }
 
     static setBalance(amount) {
+        const previous = parseInt(localStorage.getItem('casinoBalance')) || 0;
+        if (previous === amount) {
+            // No-op: avoid redundant UI updates and Firestore writes
+            return;
+        }
         localStorage.setItem('casinoBalance', amount);
         // Update all balance displays on the page
         const balanceElements = document.querySelectorAll('.balance-amount, .coin-balance');
         balanceElements.forEach(element => {
             element.textContent = Math.floor(amount);
         });
+        
+        // Save to Firebase if user is logged in
+        if (window.casinoAuth && window.casinoAuth.isUserLoggedIn()) {
+            window.casinoAuth.saveUserBalance(amount);
+        }
     }
 
     static updateBalance(amount) {
@@ -633,6 +965,13 @@ class BlackjackGame {
 
     async startNewHand() {
         if (this.gameInProgress) return;
+        
+        // Check if user is signed in
+        if (!window.casinoAuth || !window.casinoAuth.isUserLoggedIn()) {
+            this.showSignInPrompt();
+            return;
+        }
+        
         if (this.currentBet < 1) {
             this.showNotification('Minimum bet is 1');
             return;
@@ -1195,6 +1534,18 @@ class BlackjackGame {
             this.splitBtn.disabled = true;
         }
     }
+
+    showSignInPrompt() {
+        this.showNotification('Please sign in to play games!', '#ff4444');
+        
+        // Show auth popup after a short delay
+        setTimeout(() => {
+            const authPopup = document.getElementById('auth-popup');
+            if (authPopup) {
+                authPopup.style.display = 'flex';
+            }
+        }, 1000);
+    }
 }
 
 // Plinko Game Implementation
@@ -1219,6 +1570,11 @@ class PlinkoGame {
         this.pegRadius = 6;
         this.ballRadius = 8;
         this.ballDropCount = 0; // Track number of balls dropped
+        this.accumulatedWinnings = 0; // Track winnings during auto mode
+        this.pendingAutoPayout = false; // Add to balance after all balls resolve
+        this.autoPausedForFunds = false; // Auto paused awaiting payout to refill
+        this.shouldResumeAfterPayout = false; // Resume auto after payout if possible
+        this.userRequestedStop = false; // Explicit stop pressed by user
         
         this.balanceElement = document.querySelector('.balance-amount');
         this.notificationStack = document.querySelector('.plinko-notification-stack');
@@ -1228,10 +1584,13 @@ class PlinkoGame {
         this.betBtn = document.querySelector('.sidebar-bet-btn');
         this.manualTab = document.querySelector('.sidebar-tab[data-mode="manual"]');
         this.autoTab = document.querySelector('.sidebar-tab[data-mode="auto"]');
+        this.winningsContainer = document.getElementById('winnings-container');
+        this.winningsAmount = document.getElementById('winnings-amount');
         
         this.initPegs();
         this.initControls();
         this.updateBalance();
+        this.updateWinningsDisplay();
         
         // Refresh balance when page becomes visible (in case user switched from another game)
         document.addEventListener('visibilitychange', () => {
@@ -1341,22 +1700,44 @@ class PlinkoGame {
         if (this.betBtn) {
             this.betBtn.textContent = this.isAutoMode ? 'Start' : 'Bet';
         }
+        // Reset accumulated winnings UI when switching modes
+        if (!this.isAutoMode) {
+            this.accumulatedWinnings = 0;
+            this.updateWinningsDisplay();
+        }
         // Stop auto dropping if switching to manual mode
         if (!this.isAutoMode && this.autoInterval) {
             this.toggleAutoDrop();
         }
+        // Ensure winnings container visibility reflects current mode immediately
+        this.updateWinningsDisplay();
     }
 
     toggleAutoDrop() {
-        if (this.autoInterval) {
+        // Consider paused/waiting states as 'running' for stop purposes
+        if (this.autoInterval || this.autoPausedForFunds || this.pendingAutoPayout || this.shouldResumeAfterPayout) {
             clearInterval(this.autoInterval);
             this.autoInterval = null;
             this.betBtn.textContent = 'Start';
+            // On stop: wait until all balls have completed before adding to balance
+            this.userRequestedStop = true;
+            if (this.balls.length > 0) {
+                this.pendingAutoPayout = true;
+            } else {
+                this.addWinningsToBalance();
+            }
+            // Cancel any auto-resume intentions
+            this.autoPausedForFunds = false;
+            this.shouldResumeAfterPayout = false;
         } else {
             const betInput = document.getElementById('sidebar-bet-amount');
             let betValue = parseInt(betInput.value, 10);
             if (isNaN(betValue) || betValue < 1) betValue = 1;
             this.bet = betValue;
+            // Reset accumulator on start of auto
+            this.accumulatedWinnings = 0;
+            this.updateWinningsDisplay();
+            this.userRequestedStop = false;
             this.autoInterval = setInterval(() => {
                 // Drop 3 balls per interval
                 for (let i = 0; i < 3; i++) {
@@ -1366,8 +1747,30 @@ class PlinkoGame {
                     if (this.balance >= this.bet) {
                         this.dropBall();
                     } else {
-                        this.toggleAutoDrop(); // Stop if not enough balance
-                        this.showNotification('Not enough balance!', null);
+                        // Pause auto: wait until existing balls resolve, then payout and try to resume
+                        this.autoPausedForFunds = true;
+                        // Only plan to resume if the user didn't press Stop
+                        this.shouldResumeAfterPayout = !this.userRequestedStop;
+                        if (this.balls.length > 0) {
+                            this.pendingAutoPayout = true;
+                        }
+                        clearInterval(this.autoInterval);
+                        this.autoInterval = null;
+                        // Keep showing 'Stop' to indicate auto is still active (waiting)
+                        this.betBtn.textContent = 'Stop';
+                        // If there are no balls in flight, payout immediately and try to resume
+                        if (this.balls.length === 0) {
+                            this.addWinningsToBalance();
+                            if (!this.userRequestedStop && this.balance >= this.bet) {
+                                this.restartAutoInterval();
+                            } else {
+                                this.autoPausedForFunds = false;
+                                this.shouldResumeAfterPayout = false;
+                                this.showNotification('Not enough balance!', null);
+                                // Truly stopped due to insufficient funds -> show Start
+                                this.betBtn.textContent = 'Start';
+                            }
+                        }
                         break;
                     }
                 }
@@ -1378,6 +1781,7 @@ class PlinkoGame {
 
     updateBalance() {
         if (this.balanceElement) {
+            // Show actual balance only; accumulated shown separately
             this.balanceElement.textContent = Math.floor(this.balance);
         }
         // Update the coin tab at the top
@@ -1447,6 +1851,12 @@ class PlinkoGame {
     dropBall() {
         if (this.balls.length > 100) return; // Increased from 40 to handle more balls
         
+        // Check if user is signed in
+        if (!window.casinoAuth || !window.casinoAuth.isUserLoggedIn()) {
+            this.showSignInPrompt();
+            return;
+        }
+        
         // Get fresh balance before checking
         this.balance = CasinoBalance.getBalance();
         
@@ -1488,7 +1898,66 @@ class PlinkoGame {
         } else {
             this.isDropping = false;
             this.setBetControlsEnabled(true);
+            // If auto was stopped and winnings are pending, pay out now
+            if (!this.autoInterval && this.pendingAutoPayout) {
+                this.pendingAutoPayout = false;
+                this.addWinningsToBalance();
+                // If we paused due to funds, try to resume after payout
+                if (this.shouldResumeAfterPayout && !this.userRequestedStop) {
+                    this.shouldResumeAfterPayout = false;
+                    this.autoPausedForFunds = false;
+                    if (this.balance >= this.bet) {
+                        this.restartAutoInterval();
+                    } else {
+                        this.showNotification('Not enough balance!', null);
+                        // Cannot resume -> reflect stopped state
+                        this.betBtn.textContent = 'Start';
+                    }
+                } else {
+                    // Cleanup flags if user stopped
+                    this.autoPausedForFunds = false;
+                    this.shouldResumeAfterPayout = false;
+                    // If user stopped, ensure button shows Start
+                    if (this.betBtn) this.betBtn.textContent = 'Start';
+                }
+            }
         }
+    }
+
+    restartAutoInterval() {
+        if (this.autoInterval) return;
+        this.autoInterval = setInterval(() => {
+            for (let i = 0; i < 3; i++) {
+                this.balance = CasinoBalance.getBalance();
+                if (this.balance >= this.bet) {
+                    this.dropBall();
+                } else {
+                    this.autoPausedForFunds = true;
+                    this.shouldResumeAfterPayout = !this.userRequestedStop;
+                    if (this.balls.length > 0) {
+                        this.pendingAutoPayout = true;
+                    }
+                    clearInterval(this.autoInterval);
+                    this.autoInterval = null;
+                    // Keep showing 'Stop' to indicate auto is still active (waiting)
+                    this.betBtn.textContent = 'Stop';
+                    if (this.balls.length === 0) {
+                        this.addWinningsToBalance();
+                        if (!this.userRequestedStop && this.balance >= this.bet) {
+                            this.restartAutoInterval();
+                        } else {
+                            this.autoPausedForFunds = false;
+                            this.shouldResumeAfterPayout = false;
+                            this.showNotification('Not enough balance!', null);
+                            // Reflect stopped state when cannot resume
+                            this.betBtn.textContent = 'Start';
+                        }
+                    }
+                    break;
+                }
+            }
+        }, 200);
+        this.betBtn.textContent = 'Stop';
     }
 
     startAnimationLoop() {
@@ -1696,8 +2165,15 @@ class PlinkoGame {
         else if (payout > 0.5) color = '#f1c40f';
         this.showNotification(message, color);
         if (payout > 0) {
-            this.balance += winAmount;
-            this.updateBalance();
+            if (this.isAutoMode) {
+                // Accumulate during auto mode to limit DB writes
+                this.accumulatedWinnings += winAmount;
+                this.updateWinningsDisplay();
+            } else {
+                // Manual mode: pay out immediately
+                this.balance += winAmount;
+                this.updateBalance();
+            }
         }
     }
 
@@ -1799,6 +2275,36 @@ class PlinkoGame {
         if (idx < 0) idx = 0;
         if (idx >= pegsInRow) idx = pegsInRow - 1;
         return { peg: this.pegs[pegRowStart + idx], idx };
+    }
+
+    updateWinningsDisplay() {
+        if (!this.winningsContainer) return;
+        const shouldShow = this.isAutoMode || this.accumulatedWinnings > 0 || this.autoPausedForFunds || this.pendingAutoPayout;
+        this.winningsContainer.style.display = shouldShow ? 'flex' : 'none';
+        if (this.winningsAmount) {
+            this.winningsAmount.textContent = Math.floor(this.accumulatedWinnings).toLocaleString();
+        }
+    }
+
+    addWinningsToBalance() {
+        if (this.accumulatedWinnings > 0) {
+            this.balance += this.accumulatedWinnings;
+            this.accumulatedWinnings = 0;
+            this.updateBalance();
+            this.updateWinningsDisplay();
+        }
+    }
+
+    showSignInPrompt() {
+        this.showNotification('Please sign in to play games!', '#ff4444');
+        
+        // Show auth popup after a short delay
+        setTimeout(() => {
+            const authPopup = document.getElementById('auth-popup');
+            if (authPopup) {
+                authPopup.style.display = 'flex';
+            }
+        }, 1000);
     }
 }
 
@@ -2148,6 +2654,12 @@ class MinesGame {
     }
 
     startGame() {
+        // Check if user is signed in
+        if (!window.casinoAuth || !window.casinoAuth.isUserLoggedIn()) {
+            this.showSignInPrompt();
+            return;
+        }
+        
         // Get fresh balance from CasinoBalance system
         this.balance = CasinoBalance.getBalance();
         
@@ -2685,6 +3197,18 @@ class MinesGame {
         };
         animate();
     }
+
+    showSignInPrompt() {
+        this.showNotification('Please sign in to play games!', '#ff4444');
+        
+        // Show auth popup after a short delay
+        setTimeout(() => {
+            const authPopup = document.getElementById('auth-popup');
+            if (authPopup) {
+                authPopup.style.display = 'flex';
+            }
+        }, 1000);
+    }
 }
 
 // Initialize the games when the page loads
@@ -2707,10 +3231,11 @@ window.addEventListener('load', () => {
         window.minesGame = new MinesGame();
     }
     
-    // If we're on the homepage, ensure balance is displayed
+    // If we're on the homepage, ensure balance is displayed without forcing a write
     if (document.querySelector('.homepage-container')) {
         const balance = CasinoBalance.getBalance();
-        CasinoBalance.setBalance(balance);
+        const elements = document.querySelectorAll('.balance-amount, .coin-balance');
+        elements.forEach(el => el.textContent = Math.floor(balance));
     }
 });
 
@@ -2720,6 +3245,222 @@ document.addEventListener('keydown', (event) => {
         CasinoBalance.updateBalance(5000);
     }
 });
+
+// Global variables for chart tooltip
+let chartTooltip = null;
+let tooltipChart = null;
+let tooltipTimeout = null;
+
+// Show balance history chart
+window.showBalanceHistory = async function(event, userId, userEmail) {
+    console.log('showBalanceHistory called for:', userEmail, 'ID:', userId);
+    
+    // Clear any existing timeout
+    if (tooltipTimeout) {
+        clearTimeout(tooltipTimeout);
+        tooltipTimeout = null;
+    }
+    
+    try {
+        // Get balance history for user (filter + limit, sort in-memory to avoid index requirement)
+        const { getDocs, collection, query, where, limit } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const q = query(
+            collection(window.firebaseDb, 'balanceHistory'),
+            where('userId', '==', userId),
+            limit(100)
+        );
+        const historySnapshot = await getDocs(q);
+        const history = [];
+        
+        console.log('Total history documents found:', historySnapshot.size);
+        
+        historySnapshot.forEach(doc => {
+            const data = doc.data();
+            history.push({
+                balance: data.balance,
+                timestamp: data.timestamp.toDate()
+            });
+        });
+
+        console.log('Found history entries for', userEmail, ':', history.length);
+
+        // Sort ascending for chart after fetching latest first
+        history.sort((a, b) => a.timestamp - b.timestamp);
+
+        // Show tooltip
+        const tooltip = document.getElementById('chart-tooltip');
+        const title = document.getElementById('tooltip-title');
+        title.textContent = `${userEmail} - Balance History`;
+        tooltip.classList.remove('hidden');
+
+        // Smart positioning to prevent clipping
+        const mouseX = event.clientX;
+        const mouseY = event.clientY;
+        const tooltipWidth = 450; // Max width
+        const tooltipHeight = 300; // Approximate height
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let left = mouseX + 10;
+        let top = mouseY - 10;
+        
+        // Adjust if tooltip would go off right edge
+        if (left + tooltipWidth > viewportWidth) {
+            left = mouseX - tooltipWidth - 10;
+        }
+        
+        // Adjust if tooltip would go off bottom edge
+        if (top + tooltipHeight > viewportHeight) {
+            top = viewportHeight - tooltipHeight - 20;
+        }
+        
+        // Ensure tooltip doesn't go off left edge
+        if (left < 10) {
+            left = 10;
+        }
+        
+        // Ensure tooltip doesn't go off top edge
+        if (top < 10) {
+            top = 10;
+        }
+        
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+
+        // Set timeout to auto-hide tooltip after 10 seconds
+        tooltipTimeout = setTimeout(() => {
+            hideBalanceHistory();
+        }, 10000);
+
+        // Destroy existing chart
+        if (tooltipChart) {
+            tooltipChart.destroy();
+            tooltipChart = null;
+        }
+
+        if (history.length === 0) {
+            // Show no data message
+            const chartContainer = document.querySelector('.chart-container');
+            chartContainer.innerHTML = '<div class="no-data-message">No balance history available<br><small>Make a deposit or withdrawal to create history</small></div>';
+        } else {
+            // Ensure canvas exists
+            const chartContainer = document.querySelector('.chart-container');
+            chartContainer.innerHTML = '<canvas id="tooltip-chart"></canvas>';
+
+            // Get fresh canvas reference
+            const canvas = document.getElementById('tooltip-chart');
+            const ctx = canvas.getContext('2d');
+
+            // Filter out duplicates (same balance within 5 seconds)
+            const filteredHistory = [];
+            for (let i = 0; i < history.length; i++) {
+                const current = history[i];
+                const isDuplicate = filteredHistory.some(existing => {
+                    const timeDiff = Math.abs(current.timestamp - existing.timestamp);
+                    return timeDiff < 5000 && current.balance === existing.balance;
+                });
+                
+                if (!isDuplicate) {
+                    filteredHistory.push(current);
+                }
+            }
+            
+            // Sort by timestamp
+            filteredHistory.sort((a, b) => a.timestamp - b.timestamp);
+
+            // Prepare data with exact time
+            const labels = filteredHistory.map(h => {
+                const date = h.timestamp;
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            });
+            const data = filteredHistory.map(h => h.balance);
+
+            console.log('Creating chart with data:', { labels, data });
+
+            tooltipChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Balance',
+                        data: data,
+                        borderColor: '#FFD700',
+                        backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0,
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                        hitRadius: 0,
+                        pointBackgroundColor: 'transparent',
+                        pointBorderColor: 'transparent'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#CCCCCC',
+                                maxTicksLimit: 6,
+                                maxRotation: 45,
+                                minRotation: 0
+                            },
+                            grid: {
+                                color: '#333'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#CCCCCC',
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' 🪙';
+                                }
+                            },
+                            grid: {
+                                color: '#333'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+    } catch (error) {
+        console.error('Error loading balance history:', error);
+        const tooltip = document.getElementById('chart-tooltip');
+        const title = document.getElementById('tooltip-title');
+        title.textContent = `${userEmail} - Error`;
+        tooltip.classList.remove('hidden');
+        
+        const chartContainer = document.querySelector('.chart-container');
+        chartContainer.innerHTML = '<div class="no-data-message">Error loading data</div>';
+    }
+};
+
+// Hide balance history chart
+window.hideBalanceHistory = function() {
+    const tooltip = document.getElementById('chart-tooltip');
+    tooltip.classList.add('hidden');
+    
+    // Clear timeout
+    if (tooltipTimeout) {
+        clearTimeout(tooltipTimeout);
+        tooltipTimeout = null;
+    }
+    
+    // Destroy chart to prevent memory leaks
+    if (tooltipChart) {
+        tooltipChart.destroy();
+        tooltipChart = null;
+    }
+};
 
 // Authentication Popup Management
 class AuthPopup {
@@ -2755,9 +3496,13 @@ class AuthPopup {
         const confirmPasswordField = document.getElementById('auth-confirm-password');
         const emailField = document.getElementById('auth-email');
 
-        // Handle form submission (non-functional as requested)
-        form.addEventListener('submit', (e) => {
+        // Handle form submission with Firebase authentication
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const email = emailField.value.trim();
+            const password = passwordField.value;
+            const username = document.getElementById('auth-username').value.trim();
             
             // Validate passwords match in signup mode
             if (!this.isLoginMode) {
@@ -2766,8 +3511,48 @@ class AuthPopup {
                 }
             }
             
-            // For now, just close the popup
+            // Show loading state
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Please wait...';
+            submitBtn.disabled = true;
+            
+            try {
+                let result;
+                if (this.isLoginMode) {
+                    result = await window.casinoAuth.signIn(email, password);
+                } else {
+                    if (!username) {
+                        this.showError('Username is required');
+                        return;
+                    }
+                    result = await window.casinoAuth.signUp(email, password, username);
+                }
+                
+                if (result.success) {
             this.hidePopup();
+                    this.showSuccess(this.isLoginMode ? 'Welcome back!' : 'Account created successfully!');
+                } else {
+                    // Show specific error message for sign-in failures
+                    if (this.isLoginMode) {
+                        this.showError('Incorrect email or password. Please check your credentials and try again.');
+                    } else {
+                        this.showError(result.error);
+                    }
+                }
+            } catch (error) {
+                // Show generic error for unexpected issues
+                if (this.isLoginMode) {
+                    this.showError('Incorrect email or password. Please check your credentials and try again.');
+                } else {
+                    this.showError('An unexpected error occurred. Please try again.');
+                }
+                console.error('Auth error:', error);
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
         });
 
         // Handle login/signup toggle
@@ -2879,11 +3664,85 @@ class AuthPopup {
 
         return true; // Allow empty fields for now
     }
+
+    showError(message) {
+        // Remove any existing error messages
+        const existingError = document.querySelector('.auth-error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        // Create error message element
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'auth-error-message';
+        errorDiv.textContent = message;
+        errorDiv.style.cssText = `
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.15);
+            border: 2px solid #ff4444;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 600;
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
+            animation: shake 0.5s ease-in-out;
+        `;
+
+        // Insert error message after the form
+        const form = document.getElementById('auth-form');
+        form.parentNode.insertBefore(errorDiv, form.nextSibling);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.remove();
+            }
+        }, 5000);
+    }
+
+    showSuccess(message) {
+        // Remove any existing success messages
+        const existingSuccess = document.querySelector('.auth-success-message');
+        if (existingSuccess) {
+            existingSuccess.remove();
+        }
+
+        // Create success message element
+        const successDiv = document.createElement('div');
+        successDiv.className = 'auth-success-message';
+        successDiv.textContent = message;
+        successDiv.style.cssText = `
+            color: #44ff44;
+            background: rgba(68, 255, 68, 0.1);
+            border: 1px solid #44ff44;
+            border-radius: 5px;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            text-align: center;
+            font-size: 0.9rem;
+        `;
+
+        // Insert success message after the form
+        const form = document.getElementById('auth-form');
+        form.parentNode.insertBefore(successDiv, form.nextSibling);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.remove();
+            }
+        }, 3000);
+    }
 }
 
-// Initialize authentication popup when DOM is loaded
+// Initialize Firebase Authentication and Auth Popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Only initialize on homepage
+    // Initialize Firebase Authentication
+    window.casinoAuth = new CasinoAuth();
+    
+    // Only initialize auth popup on homepage
     if (window.location.pathname.endsWith('home.html') || window.location.pathname.endsWith('/') || window.location.pathname === '') {
         new AuthPopup();
     }
