@@ -1,0 +1,320 @@
+# The Parthenon Casino - AI Assistant Rules
+
+## Project Overview
+This is a luxury ancient Greek-themed casino website featuring multiple casino games. The design emphasizes golden colors (#FFD700), elegant typography, and smooth animations. The architecture is designed for scalability to easily add new games while maintaining consistency.
+
+## Core Architecture
+
+### File Structure
+- **HTML Pages**: home.html (homepage), [game].html (individual game pages)
+- **CSS Files**: 
+  - style.css (global styles, shared components)
+  - homepage.css (homepage-specific styles)
+  - game-pages.css (all game-specific styles and layouts)
+- **JavaScript**: script.js (all game logic, balance management, shared utilities)
+
+### Game Integration Pattern
+Each new game follows this structure:
+1. Add game card to home.html with consistent styling
+2. Create [game].html page with sidebar + main content layout
+3. Add game-specific CSS to game-pages.css
+4. Implement [Game]Game class in script.js
+5. Add initialization in window.addEventListener('load')
+
+## Design System
+
+### Color Palette
+- **Primary Gold**: #FFD700 (main theme color)
+- **Secondary Gold**: #FFC000 (darker gold for gradients)
+- **Light Gold**: #FFE44D (hover states, highlights)
+- **Dark Gold**: #B8860B (text shadows, accents)
+- **Background**: Linear gradients from #1a1a1a to #2a2a2a
+- **Text**: #ffffff (primary), #FFD700 (accent text)
+- **Error**: #ff4444 (validation errors)
+- **Success**: #44ff44 (validation success)
+
+### Typography
+- **Headers**: 'Cinzel', serif (elegant, ancient Greek feel)
+- **Body Text**: 'Playfair Display', serif (readable, sophisticated)
+- **Font Weights**: 400 (normal), 600 (semi-bold), 700 (bold)
+
+### Spacing & Layout
+- **Container Padding**: 1.5rem to 2.5rem
+- **Element Gaps**: 1rem to 1.5rem
+- **Border Radius**: 8px to 20px (consistent rounding)
+- **Box Shadows**: 0 4px 15px rgba(255, 215, 0, 0.2) (golden glow)
+
+## Core Systems
+
+### Balance Management (CasinoBalance Class)
+**CRITICAL**: All games MUST use this system for consistency.
+
+```javascript
+// Always get fresh balance before operations
+this.balance = CasinoBalance.getBalance();
+
+// Update balance and UI
+CasinoBalance.setBalance(newAmount);
+CasinoBalance.updateBalance(changeAmount);
+```
+
+**Balance Refresh Pattern**: Every game MUST implement:
+```javascript
+// Refresh balance when page becomes visible
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        this.balance = CasinoBalance.getBalance();
+        this.updateBalance();
+    }
+});
+```
+
+### Game State Management
+Standard game states for all games:
+- `'waiting'`: Ready for new game, inputs enabled
+- `'playing'`: Game in progress, inputs disabled
+- `'won'`: Game completed successfully
+- `'lost'`: Game completed unsuccessfully
+
+### Input Management Pattern
+All games MUST implement consistent input disabling:
+```javascript
+// Disable inputs during gameplay
+this.disableBetInput();
+this.disableMinesInput(); // or game-specific inputs
+
+// Re-enable after game ends
+this.enableBetInput();
+this.enableMinesInput();
+```
+
+### Notification System
+Standard notification pattern:
+```javascript
+this.showNotification(message, color);
+// Colors: '#4CAF50' (success), '#ff4444' (error), '#FFD700' (info)
+```
+
+## Game Page Layout
+
+### Standard Structure
+```html
+<div class="game-container">
+    <div class="[game]-table">
+        <h2>[Game Name]</h2>
+        <div class="game-area">
+            <!-- Game-specific content -->
+        </div>
+        <div class="game-controls">
+            <!-- Betting controls -->
+        </div>
+    </div>
+</div>
+```
+
+### Sidebar Controls Pattern
+All games use consistent sidebar structure:
+```html
+<div class="sidebar-field">
+    <label for="sidebar-bet-amount">Bet Amount</label>
+    <div class="sidebar-bet-input-group">
+        <input id="sidebar-bet-amount" type="number" min="1" step="1" value="10">
+        <div class="sidebar-bet-buttons">
+            <button class="sidebar-bet-mult">2x</button>
+            <button class="sidebar-bet-max">Max</button>
+        </div>
+    </div>
+</div>
+```
+
+## Animation Systems
+
+### Card Animations (for card-based games)
+Standard card animation sequence:
+1. **Deal**: `animateDealCardToHand()` - squish down, replace, unsquish
+2. **Flip**: `animateCardFlip()` - squish down, replace with face-up, unsquish
+3. **Return**: `animateCardReturnToDeck()` - animate back to deck position
+
+### Canvas Animations
+For canvas-based games (Plinko, Mines):
+- Use `requestAnimationFrame` for smooth 60fps animations
+- Implement `startAnimationLoop()` method
+- Handle window resize with `resizeCanvas()` method
+
+### Pulse Animations
+For decorative elements:
+```css
+@keyframes shimmer-horizontal {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+```
+
+## Form Validation Patterns
+
+### Input Validation
+Standard validation classes:
+- `.error`: Red border, error glow
+- `.success`: Green border, success glow
+- `.bet-disabled`: Grayed out, disabled state
+
+### Authentication Forms
+Standard auth popup structure:
+- Email field (required)
+- Username field (required)
+- Password field (required)
+- Confirm password (signup mode only)
+- Real-time validation with visual feedback
+
+## Responsive Design
+
+### Mobile Breakpoints
+```css
+@media (max-width: 768px) {
+    /* Mobile-specific styles */
+}
+```
+
+### Responsive Patterns
+- Use `minmax()` in CSS Grid for flexible layouts
+- Maintain consistent spacing ratios
+- Ensure touch-friendly button sizes (min 44px)
+- Test on various screen sizes
+
+## Performance Considerations
+
+### Canvas Optimization
+- Clear canvas with `clearRect()` before redrawing
+- Use `requestAnimationFrame` for smooth animations
+- Implement proper cleanup for intervals/timeouts
+
+### Memory Management
+- Clear arrays and objects when games end
+- Remove event listeners when pages unload
+- Use `setTimeout` and `clearTimeout` for delayed actions
+
+## Security & Validation
+
+### Input Sanitization
+- Always validate numeric inputs with `parseInt()` and bounds checking
+- Use `isNaN()` checks for invalid numbers
+- Implement proper form validation before submission
+
+### Balance Protection
+- Always check balance before deducting bets
+- Use fresh balance data from `CasinoBalance.getBalance()`
+- Implement proper error handling for insufficient funds
+
+## Testing & Debugging
+
+### Common Issues to Watch For
+1. **Balance Sync**: Games not refreshing balance after external changes
+2. **Animation Timing**: Cards flickering or double-animating
+3. **Input State**: Controls not enabling/disabling properly
+4. **Canvas Scaling**: Click detection issues on different screen sizes
+5. **Memory Leaks**: Intervals not being cleared
+
+### Debug Patterns
+- Use `console.log()` for game state tracking
+- Implement visual debugging for canvas coordinates
+- Test balance changes with 'R' key (adds 5000)
+
+## Scalability Guidelines
+
+### Adding New Games
+1. **Homepage**: Add game card with consistent SVG icon
+2. **HTML**: Create [game].html with standard layout
+3. **CSS**: Add game-specific styles to game-pages.css
+4. **JavaScript**: Implement [Game]Game class following established patterns
+5. **Initialization**: Add to window load event listener
+
+### Game Class Template
+```javascript
+class [Game]Game {
+    constructor() {
+        // Initialize canvas/elements
+        // Set up game state
+        // Initialize balance
+        // Set up controls
+        // Add visibility change listener
+    }
+    
+    // Standard methods to implement:
+    // - startGame()
+    // - updateBalance()
+    // - showNotification()
+    // - disableBetInput() / enableBetInput()
+    // - handle game-specific logic
+}
+```
+
+### CSS Naming Convention
+- Game-specific: `.[game]-table`, `.[game]-canvas`, `.[game]-controls`
+- Shared components: `.sidebar-*`, `.game-*`, `.auth-*`
+- State classes: `.bet-disabled`, `.error`, `.success`
+
+## Code Quality Standards
+
+### JavaScript
+- Use descriptive method and variable names
+- Comment complex game logic
+- Implement proper error handling
+- Follow consistent indentation and spacing
+
+### CSS
+- Use consistent naming conventions
+- Group related styles together
+- Comment complex animations
+- Maintain responsive design principles
+
+### HTML
+- Use semantic elements
+- Maintain proper accessibility
+- Keep structure consistent across pages
+- Use proper form labels and inputs
+
+This architecture ensures that new games can be added quickly while maintaining the luxury aesthetic and consistent user experience across all casino games.
+
+## IMPORTANT: File Maintenance
+
+### Regular Updates Required
+**This `.cursorrules` file MUST be updated whenever new systems are added to the project.** The AI assistant relies on this file for context and patterns, so keeping it current is essential for optimal performance.
+
+### When to Update
+- **New Game Systems**: Add new game patterns and requirements
+- **New Core Systems**: Document new classes, utilities, or frameworks
+- **New Design Patterns**: Add new CSS patterns, animations, or UI components
+- **New Technical Requirements**: Document new APIs, libraries, or constraints
+- **Bug Fixes**: Add common issues and their solutions
+- **Performance Improvements**: Document new optimization techniques
+
+### Update Template for New Systems
+When adding new systems (like account handling, payment processing, etc.), add:
+
+```markdown
+## [System Name] System
+
+### Overview
+Brief description of the system and its purpose.
+
+### Implementation Pattern
+```javascript
+// Code examples showing the standard pattern
+```
+
+### Integration Requirements
+- How it connects to existing systems
+- Required dependencies
+- Configuration needs
+
+### Common Issues
+- Known problems and solutions
+- Debugging tips
+- Performance considerations
+```
+
+### Version History
+Keep track of major updates:
+- **v1.0**: Initial creation with core game systems
+- **v1.1**: Added authentication popup patterns
+- **[Future versions]**: Document new systems as they're added

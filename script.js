@@ -1233,6 +1233,14 @@ class PlinkoGame {
         this.initControls();
         this.updateBalance();
         
+        // Refresh balance when page becomes visible (in case user switched from another game)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.balance = CasinoBalance.getBalance();
+                this.updateBalance();
+            }
+        });
+        
         // Start animation loop to keep pegs visible
         this.startAnimationLoop();
     }
@@ -1352,6 +1360,9 @@ class PlinkoGame {
             this.autoInterval = setInterval(() => {
                 // Drop 3 balls per interval
                 for (let i = 0; i < 3; i++) {
+                    // Get fresh balance before checking
+                    this.balance = CasinoBalance.getBalance();
+                    
                     if (this.balance >= this.bet) {
                         this.dropBall();
                     } else {
@@ -1435,6 +1446,10 @@ class PlinkoGame {
 
     dropBall() {
         if (this.balls.length > 100) return; // Increased from 40 to handle more balls
+        
+        // Get fresh balance before checking
+        this.balance = CasinoBalance.getBalance();
+        
         if (this.balance < this.bet) {
             this.showNotification('Not enough balance!', null);
             return;
@@ -2703,5 +2718,173 @@ window.addEventListener('load', () => {
 document.addEventListener('keydown', (event) => {
     if (event.key.toLowerCase() === 'r') {
         CasinoBalance.updateBalance(5000);
+    }
+});
+
+// Authentication Popup Management
+class AuthPopup {
+    constructor() {
+        this.isLoginMode = true;
+        this.init();
+    }
+
+    init() {
+        // Check if this is the first visit to homepage
+        const hasVisited = sessionStorage.getItem('hasVisitedHomepage');
+        
+        if (!hasVisited) {
+            // Mark as visited
+            sessionStorage.setItem('hasVisitedHomepage', 'true');
+            
+            // Show popup after a short delay to let page load
+            setTimeout(() => {
+                this.showPopup();
+            }, 500);
+        }
+
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        const popup = document.getElementById('auth-popup');
+        const form = document.getElementById('auth-form');
+        const switchBtn = document.getElementById('auth-switch-btn');
+        const submitBtn = document.getElementById('auth-submit-btn');
+        const title = document.getElementById('auth-title');
+        const passwordField = document.getElementById('auth-password');
+        const confirmPasswordField = document.getElementById('auth-confirm-password');
+        const emailField = document.getElementById('auth-email');
+
+        // Handle form submission (non-functional as requested)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Validate passwords match in signup mode
+            if (!this.isLoginMode) {
+                if (!this.validatePasswords()) {
+                    return; // Don't close popup if passwords don't match
+                }
+            }
+            
+            // For now, just close the popup
+            this.hidePopup();
+        });
+
+        // Handle login/signup toggle
+        switchBtn.addEventListener('click', () => {
+            this.toggleMode();
+        });
+
+        // Handle password validation in real-time
+        if (passwordField && confirmPasswordField) {
+            passwordField.addEventListener('input', () => {
+                if (!this.isLoginMode) {
+                    this.validatePasswords();
+                }
+            });
+
+            confirmPasswordField.addEventListener('input', () => {
+                if (!this.isLoginMode) {
+                    this.validatePasswords();
+                }
+            });
+        }
+    }
+
+    showPopup() {
+        const popup = document.getElementById('auth-popup');
+        if (popup) {
+            popup.style.display = 'flex';
+            // Focus on username field
+            setTimeout(() => {
+                const usernameField = document.getElementById('auth-username');
+                if (usernameField) {
+                    usernameField.focus();
+                }
+            }, 100);
+        }
+    }
+
+    hidePopup() {
+        const popup = document.getElementById('auth-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+    }
+
+    toggleMode() {
+        this.isLoginMode = !this.isLoginMode;
+        
+        const title = document.getElementById('auth-title');
+        const submitBtn = document.getElementById('auth-submit-btn');
+        const switchBtn = document.getElementById('auth-switch-btn');
+        const usernameField = document.getElementById('auth-username');
+        const passwordField = document.getElementById('auth-password');
+        const confirmPasswordField = document.getElementById('auth-confirm-password');
+        const emailField = document.getElementById('auth-email');
+        const confirmPasswordGroup = document.querySelector('.auth-confirm-password');
+
+        if (this.isLoginMode) {
+            // Switch to login mode
+            title.textContent = 'Welcome to The Parthenon';
+            submitBtn.textContent = 'Login';
+            switchBtn.textContent = 'Create Account';
+            confirmPasswordGroup.style.display = 'none';
+        } else {
+            // Switch to signup mode
+            title.textContent = 'Join The Parthenon';
+            submitBtn.textContent = 'Sign Up';
+            switchBtn.textContent = 'Already have an account?';
+            confirmPasswordGroup.style.display = 'flex';
+        }
+
+        // Clear form fields and validation states
+        if (usernameField) usernameField.value = '';
+        if (emailField) emailField.value = '';
+        if (passwordField) {
+            passwordField.value = '';
+            passwordField.classList.remove('error', 'success');
+        }
+        if (confirmPasswordField) {
+            confirmPasswordField.value = '';
+            confirmPasswordField.classList.remove('error', 'success');
+        }
+    }
+
+    validatePasswords() {
+        const passwordField = document.getElementById('auth-password');
+        const confirmPasswordField = document.getElementById('auth-confirm-password');
+        
+        if (!passwordField || !confirmPasswordField) {
+            return true;
+        }
+
+        const password = passwordField.value;
+        const confirmPassword = confirmPasswordField.value;
+
+        // Clear previous validation states
+        passwordField.classList.remove('error', 'success');
+        confirmPasswordField.classList.remove('error', 'success');
+
+        // Check if passwords match
+        if (confirmPassword && password !== confirmPassword) {
+            passwordField.classList.add('error');
+            confirmPasswordField.classList.add('error');
+            return false;
+        } else if (confirmPassword && password === confirmPassword) {
+            passwordField.classList.add('success');
+            confirmPasswordField.classList.add('success');
+            return true;
+        }
+
+        return true; // Allow empty fields for now
+    }
+}
+
+// Initialize authentication popup when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Only initialize on homepage
+    if (window.location.pathname.endsWith('home.html') || window.location.pathname.endsWith('/') || window.location.pathname === '') {
+        new AuthPopup();
     }
 }); 
